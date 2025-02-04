@@ -1,6 +1,7 @@
 import pygame
 import math
 import time
+import numpy as np
 
 # Initialisation de Pygame
 pygame.init()
@@ -38,16 +39,45 @@ def seek_and_flee(flee):
         update(-steering)
     else:
         update(steering)
-
+        
 def pursuit_and_evasion(evasion):
-    T = (target_pos - vehicle.position).length() / vehicle.max_speed
-    futurePosition = target_pos + pygame.math.Vector2(pygame.mouse.get_rel()) * T
-    desired_velocity = (futurePosition - vehicle.position).normalize() * vehicle.max_speed
+    target_direction = target_pos - vehicle.position
+    
+    # Direction actuelle du véhicule
+    forward_alignment = vehicle.velocity.normalize().dot((target_direction).normalize())
+
+    # Direction vers la cible
+    position_alignment = target_direction.normalize().dot(vehicle.velocity.normalize())
+
+    # Calcul du temps d'anticipation
+    T = (target_direction).length() * abs(forward_alignment * position_alignment) / vehicle.max_speed
+
+    # Déplacement de la cible (vitesse estimée)
+    target_velocity = pygame.math.Vector2(pygame.mouse.get_rel())
+
+    # Vérifier que le vecteur cible n'est pas nul avant normalisation
+    if (target_velocity.length() > 0):
+        target_velocity = target_velocity.normalize() * vehicle.max_speed
+    else:
+        target_velocity = pygame.math.Vector2(0, 0)  # Évite l'erreur
+
+    # Prédiction de la future position
+    future_position = target_pos + target_velocity * T
+
+    # Direction désirée
+    direction = future_position - vehicle.position
+    desired_velocity = direction.normalize() * vehicle.max_speed
+
+    # Calcul du steering
     steering = desired_velocity - vehicle.velocity
+
     if (evasion):
         update(-steering)
     else:
         update(steering)
+
+
+
 
 def arrival():
     target_offset = target_pos - vehicle.position
