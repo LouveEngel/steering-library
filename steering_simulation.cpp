@@ -45,6 +45,7 @@ void seek(bool flee, Vehicle& vehicle, Vector2f target_pos) {
 
 int main() {
     Vehicle vehicle(10, {100, 100}, {0.2f, 0.2f}, 1.0f, 0.1f);
+    String mode = "seek";
     RenderWindow window(VideoMode(WIDTH, HEIGHT), "Steering Simulation");
 
     while (window.isOpen()) {
@@ -53,10 +54,16 @@ int main() {
             if (event.type == Event::Closed) {
                 window.close();
             }
-        }
+
+            if (event.type == sf::Event::KeyPressed)
+                if (event.key.code == sf::Keyboard::S) mode = "seek";
+                if (event.key.code == sf::Keyboard::F) mode = "flee";
+            }
 
         Vector2f target_pos = Vector2f(Mouse::getPosition(window));
-        seek(false, vehicle, target_pos);
+
+        if (mode == "seek") seek(false, vehicle, target_pos);
+        else if (mode == "flee") seek(true, vehicle, target_pos);
 
         window.clear(Color::Green);
         CircleShape vehicleShape(50);
