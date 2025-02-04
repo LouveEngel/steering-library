@@ -5,8 +5,13 @@ import time
 # Initialisation de Pygame
 pygame.init()
 
-# Indice du point actuellement visé
-current_target_index = 0
+# Constantes
+WIDTH, HEIGHT = 500, 500
+FPS = 60
+STEP_TIME = 1.0 / FPS
+slowing_distance = 100
+current_target_index = 0 # Indice du point actuellement visé
+inverse = False
 
 class Vehicle:
     def __init__(self, mass, position, velocity, max_force, max_speed):
@@ -26,29 +31,23 @@ def update(steering):
     vehicle.velocity.clamp_magnitude_ip(vehicle.max_speed)
     vehicle.position += vehicle.velocity
 
-def seek():
+def seek_and_flee(flee):
     desired_velocity = (target_pos - vehicle.position).normalize() * vehicle.max_speed
     steering = desired_velocity - vehicle.velocity
-    update(steering)
+    if (flee):
+        update(-steering)
+    else:
+        update(steering)
 
-def flee():
-    desired_velocity = (target_pos - vehicle.position).normalize() * vehicle.max_speed
-    steering = -(desired_velocity - vehicle.velocity)
-    update(steering)
-
-def pursuit():
+def pursuit_and_evasion(evasion):
     T = (target_pos - vehicle.position).length() / vehicle.max_speed
     futurePosition = target_pos + pygame.math.Vector2(pygame.mouse.get_rel()) * T
     desired_velocity = (futurePosition - vehicle.position).normalize() * vehicle.max_speed
     steering = desired_velocity - vehicle.velocity
-    update(steering)
-
-def evasion():
-    T = (target_pos - vehicle.position).length() / vehicle.max_speed
-    futurePosition = target_pos + pygame.math.Vector2(pygame.mouse.get_rel()) * T
-    desired_velocity = (futurePosition - vehicle.position).normalize() * vehicle.max_speed
-    steering = -(desired_velocity - vehicle.velocity)
-    update(steering)
+    if (evasion):
+        update(-steering)
+    else:
+        update(steering)
 
 def arrival():
     target_offset = target_pos - vehicle.position
@@ -69,6 +68,8 @@ def arrival():
     update(steering)
 
 def circuit():
+    global current_target_index
+
     # Récupérer le point cible actuel
     target_pos = path_points[current_target_index]
 
@@ -77,7 +78,7 @@ def circuit():
     distance = target_offset.length()
 
     # Se déplacer vers la cible (utilisation de Arrival pour un mouvement fluide)
-    slowing_distance = 50  # Ajuste selon ton besoin
+    slowing_distance = 50
 
     if distance < slowing_distance:
         ramped_speed = vehicle.max_speed * (distance / slowing_distance)
@@ -89,13 +90,88 @@ def circuit():
         desired_velocity = target_offset.normalize() * clipped_speed
     else:
         desired_velocity = pygame.math.Vector2(0, 0)  # Pas de mouvement si déjà sur la cible
+    
     steering = desired_velocity - vehicle.velocity
-
     update(steering)
 
     # Vérifier si on est proche du point cible pour passer au suivant
     if distance < 10:  # Rayon de tolérance
         current_target_index = (current_target_index + 1) % len(path_points)  # Boucle infinie
+
+def one_way():
+    global current_target_index
+    
+     # Récupérer le point cible actuel
+    target_pos = path_points[current_target_index]
+
+    # Distance entre le véhicule et la cible
+    target_offset = target_pos - vehicle.position
+    distance = target_offset.length()
+
+    # Se déplacer vers la cible (utilisation de Arrival pour un mouvement fluide)
+    slowing_distance = 50
+
+    if distance < slowing_distance:
+        ramped_speed = vehicle.max_speed * (distance / slowing_distance)
+        clipped_speed = min(ramped_speed, vehicle.max_speed)
+    else:
+        clipped_speed = vehicle.max_speed
+
+    if distance > 0:  # Vérifie si la distance est non nulle avant de normaliser
+        desired_velocity = target_offset.normalize() * clipped_speed
+    else:
+        desired_velocity = pygame.math.Vector2(0, 0)  # Pas de mouvement si déjà sur la cible
+    
+    steering = desired_velocity - vehicle.velocity
+    update(steering)
+
+    # Vérifier si on est proche du point cible pour passer au suivant
+    if distance < 10:  # Rayon de tolérance
+        if (current_target_index < len(path_points) - 1):
+            current_target_index = (current_target_index + 1) % len(path_points)  # Boucle infinie
+            
+def two_way():
+    global current_target_index
+    global inverse
+    
+     # Récupérer le point cible actuel
+    target_pos = path_points[current_target_index]
+
+    # Distance entre le véhicule et la cible
+    target_offset = target_pos - vehicle.position
+    distance = target_offset.length()
+
+    # Se déplacer vers la cible (utilisation de Arrival pour un mouvement fluide)
+    slowing_distance = 50
+
+    if distance < slowing_distance:
+        ramped_speed = vehicle.max_speed * (distance / slowing_distance)
+        clipped_speed = min(ramped_speed, vehicle.max_speed)
+    else:
+        clipped_speed = vehicle.max_speed
+
+    if distance > 0:  # Vérifie si la distance est non nulle avant de normaliser
+        desired_velocity = target_offset.normalize() * clipped_speed
+    else:
+        desired_velocity = pygame.math.Vector2(0, 0)  # Pas de mouvement si déjà sur la cible
+    
+    steering = desired_velocity - vehicle.velocity
+    update(steering)
+
+    # Vérifier si on est proche du point cible pour passer au suivant
+    if distance < 10:  # Rayon de tolérance
+        if (inverse):
+            if (current_target_index > 0):
+                current_target_index = current_target_index - 1  # Boucle infinie
+            else:
+                inverse = False
+        else:
+            if (current_target_index < len(path_points) - 1):
+                current_target_index = (current_target_index + 1) % len(path_points)  # Boucle infinie
+            else:
+                inverse = True
+
+
         
 # Liste des points formant le chemin
 path_points = [
@@ -105,12 +181,6 @@ path_points = [
     pygame.math.Vector2(300, 400),
     pygame.math.Vector2(100, 350),
 ]
-
-# Constantes
-WIDTH, HEIGHT = 500, 500
-FPS = 60
-STEP_TIME = 1.0 / FPS
-slowing_distance = 100
 
 # Création de la fenêtre
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -182,7 +252,17 @@ while running:
                 text = font.render('Arrival', True, (0, 0, 0))
             elif event.key == pygame.K_c:
                 steering_library = "circuit"
+                current_target_index = 0
                 text = font.render('Circuit', True, (0, 0, 0))
+            elif event.key == pygame.K_o:
+                steering_library = "one_way"
+                current_target_index = 0
+                text = font.render('One Way', True, (0, 0, 0))
+            elif event.key == pygame.K_t:
+                steering_library = "two_way"
+                current_target_index = 0
+                inverse = False
+                text = font.render('Two Way', True, (0, 0, 0))
 
     # Mise à jour de l'affichage
     screen.fill((255, 255, 255))
@@ -199,17 +279,21 @@ while running:
         pygame.draw.circle(screen, (255, 255, 0), point, 20)
 
     if (steering_library == "seek"):
-        seek()
+        seek_and_flee(False)
     elif (steering_library == "flee"):
-        flee()
+        seek_and_flee(True)
     elif (steering_library == "pursuit"):
-        pursuit()
+        pursuit_and_evasion(False)
     elif (steering_library == "evasion"):
-        evasion()
+        pursuit_and_evasion(True)
     elif (steering_library == "arrival"):
         arrival()
     elif (steering_library == "circuit"):
         circuit()
+    elif (steering_library == "one_way"):
+        one_way()
+    elif (steering_library == "two_way"):
+        two_way()
     
     # Calcul de l'angle de rotation
     angle = math.degrees(math.atan2(-vehicle.velocity.y, vehicle.velocity.x))
