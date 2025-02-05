@@ -106,10 +106,35 @@ void one_way(Vehicle& vehicle, int& current_target_index) {
     }
 }
 
+void two_way(Vehicle& vehicle, int& current_target_index, bool& inverse) {
+    Vector2f target_offset = path_points[current_target_index] - vehicle.position;
+    float distance = sqrt(target_offset.x * target_offset.x + target_offset.y * target_offset.y);
+
+    Vector2f target_pos = path_points[current_target_index];
+    seek(false, vehicle, path_points[current_target_index]);
+
+    if (distance < 10) {
+        if (inverse) {
+            if (current_target_index > 0) {
+                current_target_index -= 1;
+            } else {
+                    inverse = false;
+            }
+        } else {
+            if (current_target_index < path_points.size() - 1) {
+                current_target_index += 1;
+            } else {
+                inverse = true;
+            }
+        }
+    }
+}
+
 int main() {
     Vehicle vehicle(10, {100, 100}, {1.0f, 1.0f}, 1.0f, 5.0f);
     string mode = "seek";
     int current_target_index = 0;
+    bool inverse = false;
     RenderWindow window(VideoMode(WIDTH, HEIGHT), "Steering Simulation");
     window.setFramerateLimit(60);
 
@@ -126,6 +151,7 @@ int main() {
                 if (event.key.code == sf::Keyboard::A) mode = "arrival";
                 if (event.key.code == sf::Keyboard::C) mode = "circuit";
                 if (event.key.code == sf::Keyboard::O) mode = "one_way";
+                if (event.key.code == sf::Keyboard::T) mode = "two_way";
             }
         }
 
@@ -136,6 +162,7 @@ int main() {
         else if (mode == "arrival") arrival(vehicle, target_pos);
         else if (mode == "circuit") circuit(vehicle, current_target_index);
         else if (mode == "one_way") one_way(vehicle, current_target_index);
+        else if (mode == "two_way") two_way(vehicle, current_target_index, inverse);
 
         window.clear(Color::Green);
         CircleShape vehicleShape(25);
