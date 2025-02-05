@@ -13,7 +13,7 @@ const int HEIGHT = 800;
 const float slowing_distance = 200.0f;
 
 std::vector<Vector2f> path_points = {
-    {100, 100}, {400, 200}, {100, 300}, {600, 300}, {600, 100}
+    {100, 100}, {350, 100}, {600, 100}, {600, 600}, {350, 600}, {100, 600}
 };
 
 class Vehicle {
@@ -90,6 +90,22 @@ void circuit(Vehicle& vehicle, int& current_target_index) {
     }
 }
 
+void one_way(Vehicle& vehicle, int& current_target_index) {
+    Vector2f target_offset = path_points[current_target_index] - vehicle.position;
+    float distance = sqrt(target_offset.x * target_offset.x + target_offset.y * target_offset.y);
+
+    Vector2f target_pos = path_points[current_target_index];
+
+    if (current_target_index < path_points.size() - 1) {
+        seek(false, vehicle, path_points[current_target_index]);
+        if (distance < 10) {
+            current_target_index = (current_target_index + 1) % path_points.size();
+        }
+    } else {
+        arrival(vehicle, path_points[current_target_index]);
+    }
+}
+
 int main() {
     Vehicle vehicle(10, {100, 100}, {1.0f, 1.0f}, 1.0f, 5.0f);
     string mode = "seek";
@@ -109,6 +125,7 @@ int main() {
                 if (event.key.code == sf::Keyboard::F) mode = "flee";
                 if (event.key.code == sf::Keyboard::A) mode = "arrival";
                 if (event.key.code == sf::Keyboard::C) mode = "circuit";
+                if (event.key.code == sf::Keyboard::O) mode = "one_way";
             }
         }
 
@@ -118,6 +135,7 @@ int main() {
         else if (mode == "flee") seek(true, vehicle, target_pos);
         else if (mode == "arrival") arrival(vehicle, target_pos);
         else if (mode == "circuit") circuit(vehicle, current_target_index);
+        else if (mode == "one_way") one_way(vehicle, current_target_index);
 
         window.clear(Color::Green);
         CircleShape vehicleShape(25);
