@@ -13,7 +13,7 @@ const int HEIGHT = 800;
 const float slowing_distance = 200.0f;
 
 std::vector<Vector2f> path_points = {
-    {100, 100}, {350, 100}, {600, 100}, {600, 600}, {350, 600}, {100, 600}
+    {150, 100}, {400, 100}, {650, 100}, {650, 600}, {400, 600}, {150, 600}
 };
 
 class Vehicle {
@@ -171,26 +171,50 @@ int main() {
     RenderWindow window(VideoMode(WIDTH, HEIGHT), "Steering Simulation");
     window.setFramerateLimit(60);
 
-
-    // Load an image
-    sf::Image image;
-    if (!image.loadFromFile("Bee.jpeg"))
-    {
-        // Handle error
+    sf::Texture bee_texture;
+    if (!bee_texture.loadFromFile("Bee.png")) {
+        cerr << "Erreur : Impossible de charger l'image Bee.jpeg" << endl;
         return -1;
     }
 
-    // Create a texture from the image
-    sf::Texture texture;
-    if (!texture.loadFromImage(image))
-    {
-        // Handle error
+    sf::Sprite bee_sprite(bee_texture);
+    bee_sprite.setOrigin(bee_texture.getSize().x / 2, bee_texture.getSize().y / 2);
+    bee_sprite.setScale(0.1f, 0.1f);
+
+    sf::Texture flower_texture;
+    if (!flower_texture.loadFromFile("Flower.png")) {
+        cerr << "Erreur : Impossible de charger l'image Flower.jpg" << endl;
         return -1;
     }
 
-    // Create a sprite from the texture
-    sf::Sprite sprite(texture);
+    sf::Sprite flower_sprite(flower_texture);
+    flower_sprite.setOrigin(flower_texture.getSize().x / 2, flower_texture.getSize().y / 2);
+    flower_sprite.setScale(0.1f, 0.1f);
 
+    flower_sprite.setScale(0.02f, 0.02f);
+
+    
+    sf::Texture bird_texture;
+    if (!bird_texture.loadFromFile("Bird.png")) {
+        cerr << "Erreur : Impossible de charger l'image Flower.jpg" << endl;
+        return -1;
+    }
+
+    sf::Sprite bird_sprite(bird_texture);
+    bird_sprite.setOrigin(bird_texture.getSize().x / 2, bird_texture.getSize().y / 2);
+    bird_sprite.setScale(0.1f, 0.1f);
+
+
+
+    sf::Texture beehive_texture;
+    if (!beehive_texture.loadFromFile("Beehive.png")) {
+        cerr << "Erreur : Impossible de charger l'image Flower.jpg" << endl;
+        return -1;
+    }
+
+    sf::Sprite beehive_sprite(beehive_texture);
+    beehive_sprite.setOrigin(beehive_texture.getSize().x / 2, beehive_texture.getSize().y / 2);
+    beehive_sprite.setScale(0.1f, 0.1f);
 
 
 
@@ -214,6 +238,11 @@ int main() {
         }
 
         Vector2f target_pos = Vector2f(Mouse::getPosition(window));
+        if (mode == "flee" || mode == "evasion") {
+            bird_sprite.setPosition(target_pos);
+        } else {
+            flower_sprite.setPosition(target_pos);
+        }
 
         if (mode == "seek") seek(false, vehicle, target_pos);
         else if (mode == "flee") seek(true, vehicle, target_pos);
@@ -225,11 +254,6 @@ int main() {
         else if (mode == "two_way") two_way(vehicle, current_target_index, inverse, arrival_timer);
 
         window.clear(Color::Green);
-        CircleShape vehicleShape(25);
-        vehicleShape.setFillColor(Color::Yellow);
-        vehicleShape.setOrigin(vehicleShape.getRadius(), vehicleShape.getRadius());
-        vehicleShape.setPosition(vehicle.position);
-        window.draw(vehicleShape);
 
         for (size_t i = 0; i < path_points.size(); i++) {
             Vertex line[] = {
@@ -239,19 +263,39 @@ int main() {
             window.draw(line, 2, Lines);
         }
 
-        for (const auto& point : path_points) {
-            CircleShape pointShape(5);
-            pointShape.setFillColor(Color::Blue);
-            pointShape.setOrigin(5, 5);
-            pointShape.setPosition(point);
-            window.draw(pointShape);
+        for (size_t i = 0; i < path_points.size(); i++) {
+            if (mode == "one_way" && i == path_points.size() - 1) {
+                // Dernier point en mode one way → Afficher la ruche
+                beehive_sprite.setPosition(path_points[i]);
+                window.draw(beehive_sprite);
+            } else if (mode == "two_way" && ((i == path_points.size() - 1) || (i == 0))) {
+                // Dernier point en mode one way → Afficher la ruche
+                beehive_sprite.setPosition(path_points[i]);
+                window.draw(beehive_sprite);
+            } else {
+                // Sinon, afficher une fleur
+                Sprite flowerOnPath(flower_texture);
+                flowerOnPath.setOrigin(flower_texture.getSize().x / 2, flower_texture.getSize().y / 2);
+                flowerOnPath.setScale(0.02f, 0.02f);
+                flowerOnPath.setPosition(path_points[i]);
+                window.draw(flowerOnPath);
+            }
         }
 
+        bee_sprite.setPosition(vehicle.position);
 
+        if (length(vehicle.velocity) > 0.1f) {
+            float angle = atan2(vehicle.velocity.y, vehicle.velocity.x) * 180 / M_PI;
+            bee_sprite.setRotation(angle);
+        }
 
+        if (mode == "flee" || mode == "evasion") {
+            window.draw(bird_sprite);
+        } else {
+            window.draw(flower_sprite);
+        }
         
-        //window.draw(sprite);
-
+        window.draw(bee_sprite);
 
         window.display();
     }
