@@ -28,13 +28,13 @@ public:
         : mass(m), position(pos), velocity(vel), max_force(maxF), max_speed(maxS) {}
 };
 
-Vector2f normalize(Vector2f v) {
-    float length = sqrt(v.x * v.x + v.y * v.y);
-    return (length > 0) ? Vector2f(v.x / length, v.y / length) : Vector2f(0, 0);
-}
-
 float length (Vector2f v) {
     return sqrt(v.x * v.x + v.y * v.y);
+}
+
+Vector2f normalize(Vector2f v) {
+    float l = length(v);
+    return (l > 0) ? Vector2f(v.x / l, v.y / l) : Vector2f(0, 0);
 }
 
 Vector2f limit(Vector2f v, float max_length) {
@@ -61,9 +61,38 @@ void seek(bool flee, Vehicle& vehicle, Vector2f target_pos) {
     update(flee ? -steering : steering, vehicle);
 }
 
+void pursuit(bool evasion, Vehicle& vehicle, Vector2f target_pos) {
+    Vector2f target_direction = target_pos - vehicle.position;
+    
+    Vector2f vehicle_velocity_normalized = normalize(vehicle.velocity);
+    Vector2f target_direction_normalized = normalize(target_direction);
+
+    float forward_alignment = (vehicle_velocity_normalized.x * target_direction_normalized.x) +
+                              (vehicle_velocity_normalized.y * target_direction_normalized.y);
+
+    float position_alignment = (target_direction_normalized.x * vehicle_velocity_normalized.x) +
+                               (target_direction_normalized.y * vehicle_velocity_normalized.y);
+
+    float distance = length(target_direction);
+    float T = (distance * std::abs(forward_alignment * position_alignment)) / vehicle.max_speed;
+
+    Vector2f target_velocity(Mouse::getPosition().x - target_pos.x, Mouse::getPosition().y - target_pos.y);
+    target_velocity = normalize(target_velocity) * vehicle.max_speed;
+    
+    Vector2f future_position = target_pos + target_velocity * T;
+
+    Vector2f direction = future_position - vehicle.position;
+    Vector2f desired_velocity = normalize(direction) * vehicle.max_speed;
+
+    Vector2f steering = desired_velocity - vehicle.velocity;
+
+    update(evasion ? -steering : steering, vehicle);
+}
+
+
 void arrival(Vehicle& vehicle, Vector2f target_pos) {
     Vector2f target_offset = target_pos - vehicle.position;
-    float distance = sqrt(target_offset.x * target_offset.x + target_offset.y * target_offset.y);
+    float distance = length(target_offset);
 
     float clipped_speed;
     if (distance < slowing_distance) {
@@ -80,7 +109,7 @@ void arrival(Vehicle& vehicle, Vector2f target_pos) {
 
 void circuit(Vehicle& vehicle, int& current_target_index) {
     Vector2f target_offset = path_points[current_target_index] - vehicle.position;
-    float distance = sqrt(target_offset.x * target_offset.x + target_offset.y * target_offset.y);
+    float distance = length(target_offset);
 
     Vector2f target_pos = path_points[current_target_index];
     seek(false, vehicle, path_points[current_target_index]);
@@ -92,7 +121,7 @@ void circuit(Vehicle& vehicle, int& current_target_index) {
 
 void one_way(Vehicle& vehicle, int& current_target_index) {
     Vector2f target_offset = path_points[current_target_index] - vehicle.position;
-    float distance = sqrt(target_offset.x * target_offset.x + target_offset.y * target_offset.y);
+    float distance = length(target_offset);
 
     Vector2f target_pos = path_points[current_target_index];
 
@@ -106,26 +135,29 @@ void one_way(Vehicle& vehicle, int& current_target_index) {
     }
 }
 
-void two_way(Vehicle& vehicle, int& current_target_index, bool& inverse) {
+void two_way(Vehicle& vehicle, int& current_target_index, bool& inverse, float& arrival_timer) {
     Vector2f target_offset = path_points[current_target_index] - vehicle.position;
-    float distance = sqrt(target_offset.x * target_offset.x + target_offset.y * target_offset.y);
+    float distance = length(target_offset);
 
     Vector2f target_pos = path_points[current_target_index];
-    seek(false, vehicle, path_points[current_target_index]);
 
-    if (distance < 10) {
-        if (inverse) {
-            if (current_target_index > 0) {
-                current_target_index -= 1;
-            } else {
-                    inverse = false;
-            }
-        } else {
-            if (current_target_index < path_points.size() - 1) {
-                current_target_index += 1;
-            } else {
-                inverse = true;
-            }
+    bool at_end = (current_target_index == 0 && inverse) || (current_target_index == path_points.size() - 1 && !inverse);
+
+    if (at_end) {
+        arrival(vehicle, target_pos);
+
+        if (length(vehicle.velocity) < 0.05f) { 
+            arrival_timer -= 0.1f;
+        }
+
+        if (arrival_timer <= 0) {
+            inverse = !inverse;
+            arrival_timer = 2.0f;
+        }
+    } else {
+        seek(false, vehicle, target_pos);
+        if (distance < 10) {
+            current_target_index += (inverse ? -1 : 1);
         }
     }
 }
@@ -135,8 +167,32 @@ int main() {
     string mode = "seek";
     int current_target_index = 0;
     bool inverse = false;
+    float arrival_timer = 2.0f;
     RenderWindow window(VideoMode(WIDTH, HEIGHT), "Steering Simulation");
     window.setFramerateLimit(60);
+
+
+    // Load an image
+    sf::Image image;
+    if (!image.loadFromFile("Bee.jpeg"))
+    {
+        // Handle error
+        return -1;
+    }
+
+    // Create a texture from the image
+    sf::Texture texture;
+    if (!texture.loadFromImage(image))
+    {
+        // Handle error
+        return -1;
+    }
+
+    // Create a sprite from the texture
+    sf::Sprite sprite(texture);
+
+
+
 
     while (window.isOpen()) {
         Event event;
@@ -148,6 +204,8 @@ int main() {
             if (event.type == sf::Event::KeyPressed) {
                 if (event.key.code == sf::Keyboard::S) mode = "seek";
                 if (event.key.code == sf::Keyboard::F) mode = "flee";
+                if (event.key.code == sf::Keyboard::P) mode = "pursuit";
+                if (event.key.code == sf::Keyboard::E) mode = "evasion";
                 if (event.key.code == sf::Keyboard::A) mode = "arrival";
                 if (event.key.code == sf::Keyboard::C) mode = "circuit";
                 if (event.key.code == sf::Keyboard::O) mode = "one_way";
@@ -159,10 +217,12 @@ int main() {
 
         if (mode == "seek") seek(false, vehicle, target_pos);
         else if (mode == "flee") seek(true, vehicle, target_pos);
+        else if (mode == "pursuit") pursuit(false, vehicle, target_pos);
+        else if (mode == "evasion") pursuit(true, vehicle, target_pos);
         else if (mode == "arrival") arrival(vehicle, target_pos);
         else if (mode == "circuit") circuit(vehicle, current_target_index);
         else if (mode == "one_way") one_way(vehicle, current_target_index);
-        else if (mode == "two_way") two_way(vehicle, current_target_index, inverse);
+        else if (mode == "two_way") two_way(vehicle, current_target_index, inverse, arrival_timer);
 
         window.clear(Color::Green);
         CircleShape vehicleShape(25);
@@ -171,6 +231,14 @@ int main() {
         vehicleShape.setPosition(vehicle.position);
         window.draw(vehicleShape);
 
+        for (size_t i = 0; i < path_points.size(); i++) {
+            Vertex line[] = {
+                Vertex(path_points[i], Color::White),
+                Vertex(path_points[(i + 1) % path_points.size()], Color::White)
+            };
+            window.draw(line, 2, Lines);
+        }
+
         for (const auto& point : path_points) {
             CircleShape pointShape(5);
             pointShape.setFillColor(Color::Blue);
@@ -178,6 +246,11 @@ int main() {
             pointShape.setPosition(point);
             window.draw(pointShape);
         }
+
+
+
+        
+        //window.draw(sprite);
 
 
         window.display();
