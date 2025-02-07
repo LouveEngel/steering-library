@@ -13,7 +13,7 @@ const int HEIGHT = 800;
 const float slowing_distance = 200.0f;
 
 std::vector<Vector2f> path_points = {
-    {150, 100}, {400, 100}, {650, 100}, {650, 600}, {400, 600}, {150, 600}
+    {150, 200}, {400, 200}, {650, 200}, {650, 600}, {400, 600}, {150, 600}
 };
 
 class Vehicle {
@@ -164,12 +164,25 @@ void two_way(Vehicle& vehicle, int& current_target_index, bool& inverse, float& 
 
 int main() {
     Vehicle vehicle(10, {100, 100}, {1.0f, 1.0f}, 1.0f, 5.0f);
-    string mode = "seek";
+    string mode = "Seek";
     int current_target_index = 0;
     bool inverse = false;
     float arrival_timer = 2.0f;
     RenderWindow window(VideoMode(WIDTH, HEIGHT), "Steering Simulation");
     window.setFramerateLimit(60);
+
+    sf::Font font;
+    if (!font.loadFromFile("Salsa-Regular.ttf")) {
+        cerr << "Erreur : Impossible de charger la police arial.ttf" << endl;
+        return -1;
+    }
+
+    sf::Text modeText;
+    modeText.setFont(font);
+    modeText.setCharacterSize(27);
+    modeText.setFillColor(sf::Color::Black);
+    modeText.setPosition(300, 21);
+    modeText.setString("Mode: " + mode);
 
     sf::Texture bee_texture;
     if (!bee_texture.loadFromFile("Bee.png")) {
@@ -216,6 +229,16 @@ int main() {
     beehive_sprite.setOrigin(beehive_texture.getSize().x / 2, beehive_texture.getSize().y / 2);
     beehive_sprite.setScale(0.1f, 0.1f);
 
+    sf::Texture lake_texture;
+    if (!lake_texture.loadFromFile("Lake.png")) {
+        cerr << "Erreur : Impossible de charger l'image Flower.jpg" << endl;
+        return -1;
+    }
+
+    sf::Sprite lake_sprite(lake_texture);
+    lake_sprite.setOrigin(lake_texture.getSize().x / 2, lake_texture.getSize().y / 2);
+    lake_sprite.setScale(0.4f, 0.4f);
+
 
 
     while (window.isOpen()) {
@@ -226,59 +249,68 @@ int main() {
             }
 
             if (event.type == sf::Event::KeyPressed) {
-                if (event.key.code == sf::Keyboard::S) mode = "seek";
-                if (event.key.code == sf::Keyboard::F) mode = "flee";
-                if (event.key.code == sf::Keyboard::P) mode = "pursuit";
-                if (event.key.code == sf::Keyboard::E) mode = "evasion";
-                if (event.key.code == sf::Keyboard::A) mode = "arrival";
-                if (event.key.code == sf::Keyboard::C) mode = "circuit";
-                if (event.key.code == sf::Keyboard::O) mode = "one_way";
-                if (event.key.code == sf::Keyboard::T) mode = "two_way";
+                if (event.key.code == sf::Keyboard::S) mode = "Seek";
+                if (event.key.code == sf::Keyboard::F) mode = "Flee";
+                if (event.key.code == sf::Keyboard::P) mode = "Pursuit";
+                if (event.key.code == sf::Keyboard::E) mode = "Evasion";
+                if (event.key.code == sf::Keyboard::A) mode = "Arrival";
+                if (event.key.code == sf::Keyboard::C) mode = "Circuit";
+                if (event.key.code == sf::Keyboard::O) mode = "One Way";
+                if (event.key.code == sf::Keyboard::T) mode = "Two Way";
+                modeText.setString("Mode: " + mode);
             }
         }
 
         Vector2f target_pos = Vector2f(Mouse::getPosition(window));
-        if (mode == "flee" || mode == "evasion") {
+        if (mode == "Flee" || mode == "Evasion") {
             bird_sprite.setPosition(target_pos);
         } else {
             flower_sprite.setPosition(target_pos);
         }
 
-        if (mode == "seek") seek(false, vehicle, target_pos);
-        else if (mode == "flee") seek(true, vehicle, target_pos);
-        else if (mode == "pursuit") pursuit(false, vehicle, target_pos);
-        else if (mode == "evasion") pursuit(true, vehicle, target_pos);
-        else if (mode == "arrival") arrival(vehicle, target_pos);
-        else if (mode == "circuit") circuit(vehicle, current_target_index);
-        else if (mode == "one_way") one_way(vehicle, current_target_index);
-        else if (mode == "two_way") two_way(vehicle, current_target_index, inverse, arrival_timer);
+        if (mode == "Seek") seek(false, vehicle, target_pos);
+        else if (mode == "Flee") seek(true, vehicle, target_pos);
+        else if (mode == "Pursuit") pursuit(false, vehicle, target_pos);
+        else if (mode == "Evasion") pursuit(true, vehicle, target_pos);
+        else if (mode == "Arrival") arrival(vehicle, target_pos);
+        else if (mode == "Circuit") circuit(vehicle, current_target_index);
+        else if (mode == "One Way") one_way(vehicle, current_target_index);
+        else if (mode == "Two Way") two_way(vehicle, current_target_index, inverse, arrival_timer);
 
         window.clear(Color::Green);
 
-        for (size_t i = 0; i < path_points.size(); i++) {
-            Vertex line[] = {
-                Vertex(path_points[i], Color::White),
-                Vertex(path_points[(i + 1) % path_points.size()], Color::White)
-            };
-            window.draw(line, 2, Lines);
-        }
+        if (mode == "One Way" || mode == "Two Way" || mode == "Circuit") {
 
-        for (size_t i = 0; i < path_points.size(); i++) {
-            if (mode == "one_way" && i == path_points.size() - 1) {
-                // Dernier point en mode one way → Afficher la ruche
-                beehive_sprite.setPosition(path_points[i]);
-                window.draw(beehive_sprite);
-            } else if (mode == "two_way" && ((i == path_points.size() - 1) || (i == 0))) {
-                // Dernier point en mode one way → Afficher la ruche
-                beehive_sprite.setPosition(path_points[i]);
-                window.draw(beehive_sprite);
+            for (size_t i = 0; i < path_points.size(); i++) {
+                if (!((mode == "One Way" && i == path_points.size() - 1) || (mode == "Two Way" && i == path_points.size() - 1))) {
+                    Vertex line[] = {
+                        Vertex(path_points[i], Color::White),
+                        Vertex(path_points[(i + 1) % path_points.size()], Color::White)
+                    };
+                    window.draw(line, 2, Lines);
+                }
+            }
+
+            for (size_t i = 0; i < path_points.size(); i++) {
+                if ((mode == "One Way" && i == path_points.size() - 1) || (mode == "Two Way" && i == path_points.size() - 1)) {
+                    beehive_sprite.setPosition(path_points[i]);
+                    window.draw(beehive_sprite);
+                } else if (mode == "Two Way" && i == 0) {
+                    lake_sprite.setPosition(path_points[i]);
+                    window.draw(lake_sprite);
+                } else {
+                    Sprite flowerOnPath(flower_texture);
+                    flowerOnPath.setOrigin(flower_texture.getSize().x / 2, flower_texture.getSize().y / 2);
+                    flowerOnPath.setScale(0.02f, 0.02f);
+                    flowerOnPath.setPosition(path_points[i]);
+                    window.draw(flowerOnPath);
+                }
+            }
+        } else {
+            if (mode == "Flee" || mode == "Evasion") {
+                window.draw(bird_sprite);
             } else {
-                // Sinon, afficher une fleur
-                Sprite flowerOnPath(flower_texture);
-                flowerOnPath.setOrigin(flower_texture.getSize().x / 2, flower_texture.getSize().y / 2);
-                flowerOnPath.setScale(0.02f, 0.02f);
-                flowerOnPath.setPosition(path_points[i]);
-                window.draw(flowerOnPath);
+                window.draw(flower_sprite);
             }
         }
 
@@ -288,14 +320,10 @@ int main() {
             float angle = atan2(vehicle.velocity.y, vehicle.velocity.x) * 180 / M_PI;
             bee_sprite.setRotation(angle);
         }
-
-        if (mode == "flee" || mode == "evasion") {
-            window.draw(bird_sprite);
-        } else {
-            window.draw(flower_sprite);
-        }
         
         window.draw(bee_sprite);
+
+        window.draw(modeText);
 
         window.display();
     }
