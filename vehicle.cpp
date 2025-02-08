@@ -43,6 +43,7 @@ public:
         return (l > max_length) ? normalize(v) * max_length : v;
     }
 
+
     // Cette fonction permet de mettre a jour la position et la vitesse du vehicule en fonction de la force de direction appliquee
     void update(Vector2f steering) {
         steering = limit(steering, max_force);
@@ -53,12 +54,14 @@ public:
         position += velocity;
     }
 
+
     // Cette fonction permet de simuler un comportement de recherche de cible (ou fuite si flee est a true)
     void seek(bool flee, Vector2f target_pos) {
         Vector2f desired_velocity = normalize(target_pos - position) * max_speed;
         Vector2f steering = desired_velocity - velocity;
         update(flee ? -steering : steering);
     }
+
 
     // Cette fonction permet de simuler un comportement de poursuite (ou d'evitement si evasion est a true)
     void pursuit(bool evasion, Vector2f target_pos) {
@@ -89,6 +92,7 @@ public:
         update(evasion ? -steering : steering);
     }
 
+
     // Cette fonction permet de simuler un comportement d'approche d'une cible avec ralentissement
     void arrival(Vector2f target_pos, float slowing_distance) {
         Vector2f target_offset = target_pos - position;
@@ -107,6 +111,7 @@ public:
         update(steering);
     }
 
+
     // Cette fonction permet de simuler le suivi d'un chemin circulaire
     void circuit(int& current_target_index, vector<Vector2f>& path_points) {
         Vector2f target_offset = path_points[current_target_index] - position;
@@ -119,6 +124,7 @@ public:
             current_target_index = (current_target_index + 1) % path_points.size();
         }
     }
+
 
     // Cette fonction permet de simuler le suivi d'un chemin en sens unique avec ralentissement a la fin
     void one_way(int& current_target_index, vector<Vector2f>& path_points, float slowing_distance) {
@@ -136,6 +142,7 @@ public:
             arrival(path_points[current_target_index], slowing_distance);
         }
     }
+
 
     // Cette fonction permet de simuler un aller-retour sur un chemin avec un temps d'arret aux extremites
     void two_way(int& current_target_index, bool& inverse, float& arrival_timer, vector<Vector2f>& path_points, float slowing_distance) {
