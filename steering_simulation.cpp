@@ -44,11 +44,11 @@ int main() {
 
     // Chargement des textures necessaires
     map<string, Texture> textures;
-    loadTexture(textures, "bee", "Bee.png");
-    loadTexture(textures, "flower", "Flower.png");
-    loadTexture(textures, "bird", "Bird.png");
-    loadTexture(textures, "beehive", "Beehive.png");
-    loadTexture(textures, "lake", "Lake.png");
+    loadTexture(textures, "bee", "Images/Bee.png");
+    loadTexture(textures, "flower", "Images/Flower.png");
+    loadTexture(textures, "bird", "Images/Bird.png");
+    loadTexture(textures, "beehive", "Images/Beehive.png");
+    loadTexture(textures, "lake", "Images/Lake.png");
 
     // Creation et configuration des sprites pour l'affichage
     Sprite bee_sprite(textures["bee"]);
@@ -73,7 +73,7 @@ int main() {
 
     // Chargement de la police et creation du texte d'affichage du mode actuel
     sf::Font font;
-    if (!font.loadFromFile("Salsa-Regular.ttf")) {
+    if (!font.loadFromFile("Typeface/Salsa-Regular.ttf")) {
         cerr << "Erreur : Impossible de charger la police arial.ttf" << endl;
         return -1;
     }
