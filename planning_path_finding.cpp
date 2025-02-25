@@ -7,12 +7,18 @@
 #include <map>
 
 #include "player.cpp"
+#include "vehicle.cpp" // Inclusion du fichier contenant la classe Vehicle
 
 using namespace sf;
 using namespace std;
 
 constexpr int WIDTH = 800; // Largeur de la fenetre
 constexpr int HEIGHT = 800; // Hauteur de la fenetre
+
+enum class BeeState {
+    GoToFlower,
+    ReturnToHive,
+};
 
 // Cette fonction permet de charger une texture a partir d'un fichier
 void loadTexture(map<string, Texture>& textures, const string& name, const string& path) {
@@ -27,38 +33,74 @@ int main() {
     RenderWindow window(VideoMode(WIDTH, HEIGHT), "Planning Path Finding");
     window.setFramerateLimit(60); // Limite la frequence d'images a 60 FPS
 
+    // Creation d'un vehicule avec position, vitesse et autres parametres
+    Vehicle bee(10, {100, 100}, {1.0f, 1.0f}, 1.0f, 5.0f);
+
     // Chargement des textures necessaires
     map<string, Texture> textures;
     loadTexture(textures, "bee", "Images/Bee.png");
+    loadTexture(textures, "flower", "Images/Flower.png");
+    loadTexture(textures, "beehive", "Images/Beehive.png");
 
-    Player player({50,80});
+    Player player({50,200});
 
     // Creation et configuration des sprites pour l'affichage
     Sprite bee_sprite(textures["bee"]);
     bee_sprite.setOrigin(bee_sprite.getTexture()->getSize().x / 2, bee_sprite.getTexture()->getSize().y / 2);
     bee_sprite.setScale(0.07f, 0.07f);
 
+    Sprite bee_sprite2(textures["bee"]);
+    bee_sprite2.setOrigin(bee_sprite2.getTexture()->getSize().x / 2, bee_sprite2.getTexture()->getSize().y / 2);
+    bee_sprite2.setScale(0.07f, 0.07f);
+
+    Sprite flower_sprite(textures["flower"]);
+    flower_sprite.setOrigin(flower_sprite.getTexture()->getSize().x / 2, flower_sprite.getTexture()->getSize().y / 2);
+    flower_sprite.setScale(0.007f, 0.007f);
+    Vector2f flowerPos(50, 50);
+    flower_sprite.setPosition(flowerPos);
+
+    sf::Sprite beehive_sprite(textures["beehive"]);
+    beehive_sprite.setOrigin(beehive_sprite.getTexture()->getSize().x / 2, beehive_sprite.getTexture()->getSize().y / 2);
+    beehive_sprite.setScale(0.07f, 0.07f);
+    Vector2f hivePos(750, 500);
+    beehive_sprite.setPosition(hivePos);
+
+
     sf::Color color(255, 221, 161);
 
-    sf::RectangleShape rectangle1;
-    rectangle1.setSize(sf::Vector2f(700, 60));
-    rectangle1.setFillColor(color);
-    rectangle1.setPosition(0, 50);
+    // Création du conteneur pour stocker les segments du chemin
+    std::vector<RectangleShape> chemin;
 
-    sf::RectangleShape rectangle2;
-    rectangle2.setSize(sf::Vector2f(60, 600));
-    rectangle2.setFillColor(color);
-    rectangle2.setPosition(700, 50);
+    // Segment 1
+    RectangleShape rect1;
+    rect1.setSize(Vector2f(700, 80));
+    rect1.setFillColor(Color(255, 221, 161));
+    rect1.setPosition(0, 150);
+    chemin.push_back(rect1);
 
-    sf::RectangleShape rectangle3;
-    rectangle3.setSize(sf::Vector2f(400, 60));
-    rectangle3.setFillColor(color);
-    rectangle3.setPosition(100, 700);
+    // Segment 2
+    RectangleShape rect2;
+    rect2.setSize(Vector2f(80, 600));
+    rect2.setFillColor(Color(255, 221, 161));
+    rect2.setPosition(620, 0);
+    chemin.push_back(rect2);
 
-    sf::CircleShape circle;
-    circle.setRadius(10);
-    circle.setFillColor(sf::Color::Red);
-    
+    // Segment 3
+    RectangleShape rect3;
+    rect3.setSize(Vector2f(400, 80));
+    rect3.setFillColor(Color(255, 221, 161));
+    rect3.setPosition(100, 700);
+    chemin.push_back(rect3);
+
+    // Segment 4
+    RectangleShape rect4;
+    rect4.setSize(Vector2f(80, 350));
+    rect4.setFillColor(Color(255, 221, 161));
+    rect4.setPosition(80, 160);
+    chemin.push_back(rect4);
+
+    BeeState beeState = BeeState::GoToFlower;
+    float slowingDistance = 200.0f;
     
 
     // Boucle principale du programme
@@ -71,6 +113,9 @@ int main() {
 
             // Gestion des entrees clavier
             if (event.type == sf::Event::KeyPressed) {
+                // Sauvegarde de la position actuelle
+                sf::Vector2f oldPosition = player.position;
+
                 if (event.key.code == sf::Keyboard::Z) {
                     player.up();
                     bee_sprite.setRotation(-90);
@@ -78,7 +123,6 @@ int main() {
                 if (event.key.code == sf::Keyboard::Q) {
                     player.left();
                     bee_sprite.setRotation(-180);
-                    circle.setPosition(player.position.x - 30, player.position.y - 10);
                 }
                 if (event.key.code == sf::Keyboard::S) {
                     player.down();
@@ -87,24 +131,70 @@ int main() {
                 if (event.key.code == sf::Keyboard::D) {
                     player.right();
                     bee_sprite.setRotation(0);
-                    circle.setPosition(player.position.x + 10, player.position.y);
+                }
+                
+                bee_sprite.setPosition(player.position);
+
+                FloatRect beeBounds = bee_sprite.getGlobalBounds();
+                bool estSurChemin = false;
+
+                for (const auto& segment : chemin) {
+                    FloatRect segBounds = segment.getGlobalBounds();
+                    if ( segBounds.contains(beeBounds.left, beeBounds.top) &&
+                        segBounds.contains(beeBounds.left + beeBounds.width, beeBounds.top) &&
+                        segBounds.contains(beeBounds.left, beeBounds.top + beeBounds.height) &&
+                        segBounds.contains(beeBounds.left + beeBounds.width, beeBounds.top + beeBounds.height) ) {
+                        estSurChemin = true;
+                        break;
+                    }
+                }
+
+                if (!estSurChemin) {
+                    player.position = oldPosition;
+                    bee_sprite.setPosition(oldPosition);
                 }
             }
+
+        }
+
+        if (beeState == BeeState::GoToFlower) {
+            bee.seek(false, (flowerPos));
+            Vector2f diff = flowerPos - bee.position;
+            float d = sqrt(diff.x * diff.x + diff.y * diff.y);
+            if (d < 10.0f) {
+                beeState = BeeState::ReturnToHive;
+            }
+        }
+        else if (beeState == BeeState::ReturnToHive) {
+            bee.arrival(hivePos, slowingDistance);
+            Vector2f diff = hivePos - bee.position;
+            float d = sqrt(diff.x * diff.x + diff.y * diff.y);
+        }
+
+        // Mise a jour de la position et de la rotation de l'abeille (vehicule)
+        bee_sprite2.setPosition(bee.position);
+        if (bee.length(bee.velocity) > 0.1f) {
+            float angle = atan2(bee.velocity.y, bee.velocity.x) * 180 / M_PI;
+            bee_sprite2.setRotation(angle);
         }
 
         // Efface la fenetre avec un fond vert
         window.clear(Color::Green);
         
-        window.draw(rectangle1);
-        window.draw(rectangle2);
-        window.draw(rectangle3);
-        
-        
+        // Dessine tous les segments du chemin
+        for (const auto& segment : chemin) {
+            window.draw(segment);
+        }
 
+        if (beeState == BeeState::GoToFlower)
+            window.draw(flower_sprite);
+
+        window.draw(beehive_sprite);
+        
+        window.draw(bee_sprite2);
+        
         bee_sprite.setPosition(player.position);
         window.draw(bee_sprite);
-
-        window.draw(circle);
 
         window.display();
     }
