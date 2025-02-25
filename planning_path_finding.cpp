@@ -73,31 +73,80 @@ int main() {
 
     // Segment 1
     RectangleShape rect1;
-    rect1.setSize(Vector2f(700, 80));
+    rect1.setSize(Vector2f(80, 800));
     rect1.setFillColor(Color(255, 221, 161));
-    rect1.setPosition(0, 150);
+    rect1.setPosition(700, 0);
     chemin.push_back(rect1);
 
     // Segment 2
     RectangleShape rect2;
-    rect2.setSize(Vector2f(80, 600));
+    rect2.setSize(Vector2f(800, 80));
     rect2.setFillColor(Color(255, 221, 161));
-    rect2.setPosition(620, 0);
+    rect2.setPosition(0, 600);
     chemin.push_back(rect2);
 
     // Segment 3
     RectangleShape rect3;
-    rect3.setSize(Vector2f(400, 80));
+    rect3.setSize(Vector2f(80, 200));
     rect3.setFillColor(Color(255, 221, 161));
-    rect3.setPosition(100, 700);
+    rect3.setPosition(0, 600);
     chemin.push_back(rect3);
 
     // Segment 4
     RectangleShape rect4;
-    rect4.setSize(Vector2f(80, 350));
+    rect4.setSize(Vector2f(80, 200));
     rect4.setFillColor(Color(255, 221, 161));
-    rect4.setPosition(80, 160);
+    rect4.setPosition(300, 600);
     chemin.push_back(rect4);
+
+    // Segment 5
+    RectangleShape rect5;
+    rect5.setSize(Vector2f(80, 680));
+    rect5.setFillColor(Color(255, 221, 161));
+    rect5.setPosition(100, 0);
+    chemin.push_back(rect5);
+
+    // Segment 6
+    RectangleShape rect6;
+    rect6.setSize(Vector2f(180, 80));
+    rect6.setFillColor(Color(255, 221, 161));
+    rect6.setPosition(0, 150);
+    chemin.push_back(rect6);
+
+    // Segment 7
+    RectangleShape rect7;
+    rect7.setSize(Vector2f(380, 80));
+    rect7.setFillColor(Color(255, 221, 161));
+    rect7.setPosition(100, 0);
+    chemin.push_back(rect7);
+
+    // Segment 8
+    RectangleShape rect8;
+    rect8.setSize(Vector2f(80, 300));
+    rect8.setFillColor(Color(255, 221, 161));
+    rect8.setPosition(400, 0);
+    chemin.push_back(rect8);
+
+    // Segment 9
+    RectangleShape rect9;
+    rect9.setSize(Vector2f(380, 80));
+    rect9.setFillColor(Color(255, 221, 161));
+    rect9.setPosition(400, 150);
+    chemin.push_back(rect9);
+
+    // Segment 10
+    RectangleShape rect10;
+    rect10.setSize(Vector2f(680, 80));
+    rect10.setFillColor(Color(255, 221, 161));
+    rect10.setPosition(100, 400);
+    chemin.push_back(rect10);
+
+    // Segment 11
+    RectangleShape rect11;
+    rect11.setSize(Vector2f(80, 280));
+    rect11.setFillColor(Color(255, 221, 161));
+    rect11.setPosition(450, 400);
+    chemin.push_back(rect11);
 
     BeeState beeState = BeeState::GoToFlower;
     float slowingDistance = 200.0f;
