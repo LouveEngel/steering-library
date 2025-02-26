@@ -15,6 +15,18 @@ using namespace std;
 constexpr int WIDTH = 800; // Largeur de la fenetre
 constexpr int HEIGHT = 800; // Hauteur de la fenetre
 
+// Definition des points du chemin que le vehicule peut suivre
+vector<Vector2f> path_points = {
+    {140,40},{280,40},{440,40},{740,40},
+    {40, 190}, {140,190},{440, 190},{590,190},{740, 190},
+    {440,260},
+    {140,310},{740,310},
+    {140,440}, {320,440},{490,440},{620,440},{740,440},
+    {140,540},{490,540},{740,540},
+    {40,640},{140, 640},{340,640},{490, 640},{620,640},{740, 640},
+    {40,750}, {340,750}, {740,750}
+};
+
 enum class BeeState {
     GoToFlower,
     ReturnToHive,
@@ -244,6 +256,12 @@ int main() {
         
         bee_sprite.setPosition(player.position);
         window.draw(bee_sprite);
+
+        // Placement des objets (fleurs, ruche, lac) aux points du chemin
+        for (size_t i = 0; i < path_points.size(); i++) {
+            flower_sprite.setPosition(path_points[i]); // Place une fleur
+            window.draw(flower_sprite); // Affiche la fleur
+        }
 
         window.display();
     }
