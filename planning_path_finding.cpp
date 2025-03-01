@@ -65,7 +65,7 @@ int main() {
     srand(static_cast<unsigned int>(time(nullptr)));
 
     // Creation d'un vehicule avec position, vitesse et autres parametres
-    Vehicle bee(10, {100, 100}, {1.0f, 1.0f}, 1.0f, 5.0f);
+    Vehicle bee(10, {700, 700}, {1.0f, 1.0f}, 1.0f, 5.0f, -1);
 
     Player player({50,200},false);
 
@@ -76,9 +76,13 @@ int main() {
     loadTexture(textures, "beehive", "Images/Beehive.png");
 
     // Creation et configuration des sprites pour l'affichage
-    Sprite bee_sprite(textures["bee"]);
-    bee_sprite.setOrigin(bee_sprite.getTexture()->getSize().x / 2, bee_sprite.getTexture()->getSize().y / 2);
-    bee_sprite.setScale(0.07f, 0.07f);
+    Sprite bee_player(textures["bee"]);
+    bee_player.setOrigin(bee_player.getTexture()->getSize().x / 2, bee_player.getTexture()->getSize().y / 2);
+    bee_player.setScale(0.07f, 0.07f);
+
+    Sprite bee_ai(textures["bee"]);
+    bee_ai.setOrigin(bee_ai.getTexture()->getSize().x / 2, bee_ai.getTexture()->getSize().y / 2);
+    bee_ai.setScale(0.07f, 0.07f);
 
     Sprite flower_sprite(textures["flower"]);
     flower_sprite.setOrigin(flower_sprite.getTexture()->getSize().x / 2, flower_sprite.getTexture()->getSize().y / 2);
@@ -143,9 +147,11 @@ int main() {
 
     float slowingDistance = 200.0f;
 
+    vector<Vector2f> flowerPositions;
     vector<Flower> flowers;
     for (size_t i = 0; i < path_points.size(); i++) {
         if (rand() % 2 == 0) {
+            flowerPositions.push_back(path_points[i]);
             Flower f;
             f.sprite.setTexture(textures["flower"]);
             f.sprite.setOrigin(f.sprite.getTexture()->getSize().x / 2.f,
@@ -171,24 +177,24 @@ int main() {
 
                 if (event.key.code == sf::Keyboard::Z) {
                     player.up();
-                    bee_sprite.setRotation(-90);
+                    bee_player.setRotation(-90);
                 }
                 if (event.key.code == sf::Keyboard::Q) {
                     player.left();
-                    bee_sprite.setRotation(-180);
+                    bee_player.setRotation(-180);
                 }
                 if (event.key.code == sf::Keyboard::S) {
                     player.down();
-                    bee_sprite.setRotation(90);
+                    bee_player.setRotation(90);
                 }
                 if (event.key.code == sf::Keyboard::D) {
                     player.right();
-                    bee_sprite.setRotation(0);
+                    bee_player.setRotation(0);
                 }
                 
-                bee_sprite.setPosition(player.position);
+                bee_player.setPosition(player.position);
 
-                FloatRect beeBounds = bee_sprite.getGlobalBounds();
+                FloatRect beeBounds = bee_player.getGlobalBounds();
                 FloatRect segRuche = rectRuche.getGlobalBounds();
                 bool estSurChemin = false;
 
@@ -213,7 +219,7 @@ int main() {
 
                 if (!estSurChemin) {
                     player.position = oldPosition;
-                    bee_sprite.setPosition(oldPosition);
+                    bee_player.setPosition(oldPosition);
                 }
             }
 
@@ -222,7 +228,7 @@ int main() {
         if(!player.carryingFlower) {
             for (auto& f : flowers) {
                 if (!f.picked && !f.delivered) {
-                    if (bee_sprite.getGlobalBounds().intersects(f.sprite.getGlobalBounds())) {
+                    if (bee_player.getGlobalBounds().intersects(f.sprite.getGlobalBounds())) {
                         f.picked = true;
                         player.carryingFlower = true;
                     }
@@ -238,13 +244,18 @@ int main() {
 
         for (auto& f : flowers) {
             if (f.picked && !f.delivered) {
-                if (bee_sprite.getGlobalBounds().intersects(beehive_sprite.getGlobalBounds())) {
+                if (bee_player.getGlobalBounds().intersects(beehive_sprite.getGlobalBounds())) {
                     f.delivered = true;
                     f.picked = false;
                     player.carryingFlower = false;
                 }
             }
         }
+
+        if (bee.bestIndex == -1) {
+            bee.findClosestPointIndex(flowerPositions);
+        }
+        bee.seek(false, flowerPositions[bee.bestIndex]);
 
         // Efface la fenetre avec un fond vert
         window.clear(Color::Green);
@@ -261,8 +272,11 @@ int main() {
                 window.draw(f.sprite);
         }
 
-        bee_sprite.setPosition(player.position);
-        window.draw(bee_sprite);
+        bee_player.setPosition(player.position);
+        window.draw(bee_player);
+
+        bee_ai.setPosition(bee.position);
+        window.draw(bee_ai);
 
         window.display();
     }

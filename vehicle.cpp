@@ -17,11 +17,12 @@ public:
     Vector2f velocity; // Vitesse actuelle du vehicule
     float max_force; // Force maximale pouvant etre appliquee
     float max_speed; // Vitesse maximale du vehicule
+    int bestIndex;
 
 
     // Constructeur initialisant les proprietes du vehicule
-    Vehicle(float m, Vector2f pos, Vector2f vel, float maxF, float maxS) 
-        : mass(m), position(pos), velocity(vel), max_force(maxF), max_speed(maxS) {}
+    Vehicle(float m, Vector2f pos, Vector2f vel, float maxF, float maxS, int bestI) 
+        : mass(m), position(pos), velocity(vel), max_force(maxF), max_speed(maxS), bestIndex(bestI) {}
 
 
     // Cette fonction permet de connaitre la longueur d'un vecteur
@@ -170,5 +171,20 @@ public:
                 current_target_index += (inverse ? -1 : 1);
             }
         }
+    }
+
+    int findClosestPointIndex(const vector<Vector2f>& points) {
+        bestIndex = 0;
+        float bestDist = std::numeric_limits<float>::max();
+        for (int i = 0; i < points.size(); i++) {
+            float dx = position.x - points[i].x;
+            float dy = position.y - points[i].y;
+            float d = dx * dx + dy * dy;
+            if (d < bestDist) {
+                bestDist = d;
+                bestIndex = i;
+            }
+        }
+        return bestIndex;
     }
 };
