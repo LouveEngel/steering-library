@@ -17,12 +17,6 @@ using namespace std;
 constexpr int WIDTH = 800; // Largeur de la fenetre
 constexpr int HEIGHT = 800; // Hauteur de la fenetre
 
-struct Flower {
-    Sprite sprite;
-    bool picked = false;
-    bool delivered = false;
-};
-
 // Definition des points du chemin que le vehicule peut suivre
 vector<Vector2f> path_points = {
     {140,40},{280,40},{440,40},{740,40},
@@ -37,12 +31,13 @@ vector<Vector2f> path_points = {
 
 // Definition des points ou peut se trouver la ruche
 vector<Vector2f> hive_points = {
-    {50,90},{590,90},{320,345},{50,540},{640,740}
+    /*{50,90},*/{590,90},{320,345}/*,{50,540},{640,740}*/
 };
 
-enum class BeeState {
-    GoToFlower,
-    ReturnToHive,
+struct Flower {
+    Sprite sprite;
+    bool picked = false;
+    bool delivered = false;
 };
 
 // Cette fonction permet de charger une texture a partir d'un fichier
@@ -51,6 +46,14 @@ void loadTexture(map<string, Texture>& textures, const string& name, const strin
         cerr << "Erreur : Impossible de charger " << path << endl;
         exit(-1);
     }
+}
+
+void createRect(std::vector<RectangleShape>& chemin, int sizeX, int sizeY, int positionX, int positionY) {
+    RectangleShape rect;
+    rect.setSize(Vector2f(sizeX, sizeY));
+    rect.setFillColor(Color(255, 221, 161));
+    rect.setPosition(positionX, positionY);
+    chemin.push_back(rect);
 }
 
 int main() {
@@ -64,22 +67,18 @@ int main() {
     // Creation d'un vehicule avec position, vitesse et autres parametres
     Vehicle bee(10, {100, 100}, {1.0f, 1.0f}, 1.0f, 5.0f);
 
+    Player player({50,200},false);
+
     // Chargement des textures necessaires
     map<string, Texture> textures;
     loadTexture(textures, "bee", "Images/Bee.png");
     loadTexture(textures, "flower", "Images/Flower.png");
     loadTexture(textures, "beehive", "Images/Beehive.png");
 
-    Player player({50,200});
-
     // Creation et configuration des sprites pour l'affichage
     Sprite bee_sprite(textures["bee"]);
     bee_sprite.setOrigin(bee_sprite.getTexture()->getSize().x / 2, bee_sprite.getTexture()->getSize().y / 2);
     bee_sprite.setScale(0.07f, 0.07f);
-
-    Sprite bee_sprite2(textures["bee"]);
-    bee_sprite2.setOrigin(bee_sprite2.getTexture()->getSize().x / 2, bee_sprite2.getTexture()->getSize().y / 2);
-    bee_sprite2.setScale(0.07f, 0.07f);
 
     Sprite flower_sprite(textures["flower"]);
     flower_sprite.setOrigin(flower_sprite.getTexture()->getSize().x / 2, flower_sprite.getTexture()->getSize().y / 2);
@@ -98,7 +97,6 @@ int main() {
     rectRuche.setSize(Vector2f(100, 190));
     rectRuche.setFillColor(sf::Color::Red);
     
-
     int randomIndex = rand() % hive_points.size();
     Vector2f selectedHive = hive_points[randomIndex];
     beehive_sprite.setPosition(selectedHive);
@@ -111,104 +109,52 @@ int main() {
     chemin.push_back(rectRuche);
 
     // Segment 1
-    RectangleShape rect1;
-    rect1.setSize(Vector2f(80, 800));
-    rect1.setFillColor(Color(255, 221, 161));
-    rect1.setPosition(700, 0);
-    chemin.push_back(rect1);
+    createRect(chemin, 80, 800, 700, 0);
 
     // Segment 2
-    RectangleShape rect2;
-    rect2.setSize(Vector2f(800, 80));
-    rect2.setFillColor(Color(255, 221, 161));
-    rect2.setPosition(0, 600);
-    chemin.push_back(rect2);
+    createRect(chemin, 800, 80, 0, 600);
 
     // Segment 3
-    RectangleShape rect3;
-    rect3.setSize(Vector2f(80, 200));
-    rect3.setFillColor(Color(255, 221, 161));
-    rect3.setPosition(0, 600);
-    chemin.push_back(rect3);
+    createRect(chemin, 80, 200, 0, 600);
 
     // Segment 4
-    RectangleShape rect4;
-    rect4.setSize(Vector2f(80, 200));
-    rect4.setFillColor(Color(255, 221, 161));
-    rect4.setPosition(300, 600);
-    chemin.push_back(rect4);
+    createRect(chemin, 80, 200, 300, 600);
 
     // Segment 5
-    RectangleShape rect5;
-    rect5.setSize(Vector2f(80, 680));
-    rect5.setFillColor(Color(255, 221, 161));
-    rect5.setPosition(100, 0);
-    chemin.push_back(rect5);
+    createRect(chemin, 80, 680, 100, 0);
 
     // Segment 6
-    RectangleShape rect6;
-    rect6.setSize(Vector2f(180, 80));
-    rect6.setFillColor(Color(255, 221, 161));
-    rect6.setPosition(0, 150);
-    chemin.push_back(rect6);
+    createRect(chemin, 180, 80, 0, 150);
 
     // Segment 7
-    RectangleShape rect7;
-    rect7.setSize(Vector2f(380, 80));
-    rect7.setFillColor(Color(255, 221, 161));
-    rect7.setPosition(100, 0);
-    chemin.push_back(rect7);
+    createRect(chemin, 380, 80, 100, 0);
 
     // Segment 8
-    RectangleShape rect8;
-    rect8.setSize(Vector2f(80, 300));
-    rect8.setFillColor(Color(255, 221, 161));
-    rect8.setPosition(400, 0);
-    chemin.push_back(rect8);
+    createRect(chemin, 80, 300, 400, 0);
 
     // Segment 9
-    RectangleShape rect9;
-    rect9.setSize(Vector2f(380, 80));
-    rect9.setFillColor(Color(255, 221, 161));
-    rect9.setPosition(400, 150);
-    chemin.push_back(rect9);
+    createRect(chemin, 380, 80, 400, 150);
 
     // Segment 10
-    RectangleShape rect10;
-    rect10.setSize(Vector2f(680, 80));
-    rect10.setFillColor(Color(255, 221, 161));
-    rect10.setPosition(100, 400);
-    chemin.push_back(rect10);
+    createRect(chemin, 680, 80, 100, 400);
 
     // Segment 11
-    RectangleShape rect11;
-    rect11.setSize(Vector2f(80, 280));
-    rect11.setFillColor(Color(255, 221, 161));
-    rect11.setPosition(450, 400);
-    chemin.push_back(rect11);
+    createRect(chemin, 80, 280, 450, 400);
 
-    BeeState beeState = BeeState::GoToFlower;
     float slowingDistance = 200.0f;
 
-    vector<Vector2f> flowerPositions;
+    vector<Flower> flowers;
     for (size_t i = 0; i < path_points.size(); i++) {
         if (rand() % 2 == 0) {
-            flowerPositions.push_back(path_points[i]);
+            Flower f;
+            f.sprite.setTexture(textures["flower"]);
+            f.sprite.setOrigin(f.sprite.getTexture()->getSize().x / 2.f,
+                               f.sprite.getTexture()->getSize().y / 2.f);
+            f.sprite.setScale(0.007f, 0.007f);
+            f.sprite.setPosition(path_points[i]);
+            flowers.push_back(f);
         }
     }
-
-    vector<Flower> flowers;
-    for (auto pos : flowerPositions) {
-        Flower f;
-        f.sprite.setTexture(textures["flower"]);
-        f.sprite.setOrigin(f.sprite.getTexture()->getSize().x / 2.f,
-                           f.sprite.getTexture()->getSize().y / 2.f);
-        // Ajustez le scale selon vos besoins
-        f.sprite.setScale(0.007f, 0.007f);
-        f.sprite.setPosition(pos);
-        flowers.push_back(f);
-    }
-    
 
     // Boucle principale du programme
     while (window.isOpen()) {
@@ -265,7 +211,6 @@ int main() {
                     }
                 }
 
-
                 if (!estSurChemin) {
                     player.position = oldPosition;
                     bee_sprite.setPosition(oldPosition);
@@ -274,10 +219,13 @@ int main() {
 
         }
 
-        for (auto& f : flowers) {
-            if (!f.picked && !f.delivered) {
-                if (bee_sprite.getGlobalBounds().intersects(f.sprite.getGlobalBounds())) {
-                    f.picked = true;
+        if(!player.carryingFlower) {
+            for (auto& f : flowers) {
+                if (!f.picked && !f.delivered) {
+                    if (bee_sprite.getGlobalBounds().intersects(f.sprite.getGlobalBounds())) {
+                        f.picked = true;
+                        player.carryingFlower = true;
+                    }
                 }
             }
         }
@@ -293,29 +241,9 @@ int main() {
                 if (bee_sprite.getGlobalBounds().intersects(beehive_sprite.getGlobalBounds())) {
                     f.delivered = true;
                     f.picked = false;
+                    player.carryingFlower = false;
                 }
             }
-        }
-
-        /*if (beeState == BeeState::GoToFlower) {
-            bee.seek(false, selectedHive);
-            Vector2f diff = selectedHive - bee.position;
-            float d = sqrt(diff.x * diff.x + diff.y * diff.y);
-            if (d < 10.0f) {
-                beeState = BeeState::ReturnToHive;
-            }
-        }
-        else if (beeState == BeeState::ReturnToHive) {
-            bee.arrival(selectedHive, slowingDistance);
-            Vector2f diff = selectedHive - bee.position;
-            float d = sqrt(diff.x * diff.x + diff.y * diff.y);
-        }*/
-
-        // Mise a jour de la position et de la rotation de l'abeille (vehicule)
-        bee_sprite2.setPosition(bee.position);
-        if (bee.length(bee.velocity) > 0.1f) {
-            float angle = atan2(bee.velocity.y, bee.velocity.x) * 180 / M_PI;
-            bee_sprite2.setRotation(angle);
         }
 
         // Efface la fenetre avec un fond vert
@@ -325,11 +253,6 @@ int main() {
         for (const auto& segment : chemin) {
             window.draw(segment);
         }
-
-        if (beeState == BeeState::GoToFlower)
-            window.draw(flower_sprite);
-        
-        window.draw(bee_sprite2);
 
         window.draw(beehive_sprite);
 

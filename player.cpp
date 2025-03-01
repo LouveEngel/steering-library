@@ -9,10 +9,11 @@ class Player {
 
 public:
     Vector2f position; // Position actuelle du joueur
+    bool carryingFlower;
 
     // Constructeur initialisant les proprietes du vehicule
-    Player(Vector2f pos) 
-        : position(pos) {}
+    Player(Vector2f pos, bool carryingF) 
+        : position(pos), carryingFlower(carryingF) {}
 
     void up () {
         position.y -= 5;
