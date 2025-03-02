@@ -65,7 +65,7 @@ int main() {
     srand(static_cast<unsigned int>(time(nullptr)));
 
     // Creation d'un vehicule avec position, vitesse et autres parametres
-    Vehicle bee(10, {700, 700}, {1.0f, 1.0f}, 1.0f, 5.0f, -1);
+    Vehicle bee(10, {700, 700}, {1.0f, 1.0f}, 1.0f, 5.0f, -1, false);
 
     Player player({50,200},false);
 
@@ -236,11 +236,22 @@ int main() {
             }
         }
 
+        if(!bee.carryingFlower) {
+            for (auto& f : flowers) {
+                if (!f.picked && !f.delivered) {
+                    if (bee_ai.getGlobalBounds().intersects(f.sprite.getGlobalBounds())) {
+                        f.picked = true;
+                        bee.carryingFlower = true;
+                    }
+                }
+            }
+        }
+
         for (auto& f : flowers) {
             if (f.picked && !f.delivered) {
                 f.sprite.setPosition(player.position + Vector2f(20, 0));
             }
-        }
+        } // Gerer avec ai qui prend fleur / supprimer fleur liste quand player (ai regarde si fleur pickup)
 
         for (auto& f : flowers) {
             if (f.picked && !f.delivered) {
@@ -248,14 +259,25 @@ int main() {
                     f.delivered = true;
                     f.picked = false;
                     player.carryingFlower = false;
+                } else if (bee_ai.getGlobalBounds().intersects(beehive_sprite.getGlobalBounds())) {
+                    f.delivered = true;
+                    f.picked = false;
+                    bee.carryingFlower = false;
+                    if (bee.bestIndex >= 0 && bee.bestIndex < static_cast<int>(flowerPositions.size())) {
+                        flowerPositions.erase(flowerPositions.begin() + bee.bestIndex);
+                        bee.bestIndex = -1;
+                    }
                 }
             }
         }
 
         if (bee.bestIndex == -1) {
             bee.findClosestPointIndex(flowerPositions);
+        } else if (bee.carryingFlower) {
+            bee.seek(false, selectedHive);
+        } else {
+            bee.seek(false, flowerPositions[bee.bestIndex]);
         }
-        bee.seek(false, flowerPositions[bee.bestIndex]);
 
         // Efface la fenetre avec un fond vert
         window.clear(Color::Green);
