@@ -34,12 +34,6 @@ vector<Vector2f> hive_points = {
     /*{50,90},*/{590,90},{320,345}/*,{50,540},{640,740}*/
 };
 
-struct Flower {
-    Sprite sprite;
-    bool picked = false;
-    bool delivered = false;
-};
-
 // Cette fonction permet de charger une texture a partir d'un fichier
 void loadTexture(map<string, Texture>& textures, const string& name, const string& path) {
     if (!textures[name].loadFromFile(path)) {
@@ -67,7 +61,7 @@ int main() {
     // Creation d'un vehicule avec position, vitesse et autres parametres
     Vehicle bee(10, {700, 700}, {1.0f, 1.0f}, 1.0f, 5.0f, -1, false);
 
-    Player player({50,200},false);
+    Player player({50,200},false,-1);
 
     // Chargement des textures necessaires
     map<string, Texture> textures;
@@ -147,11 +141,9 @@ int main() {
 
     float slowingDistance = 200.0f;
 
-    vector<Vector2f> flowerPositions;
     vector<Flower> flowers;
     for (size_t i = 0; i < path_points.size(); i++) {
         if (rand() % 2 == 0) {
-            flowerPositions.push_back(path_points[i]);
             Flower f;
             f.sprite.setTexture(textures["flower"]);
             f.sprite.setOrigin(f.sprite.getTexture()->getSize().x / 2.f,
@@ -225,23 +217,27 @@ int main() {
 
         }
 
-        if(!player.carryingFlower) {
-            for (auto& f : flowers) {
-                if (!f.picked && !f.delivered) {
-                    if (bee_player.getGlobalBounds().intersects(f.sprite.getGlobalBounds())) {
+        if(!player.carryingFlower){
+            for(auto &f: flowers){
+                if(!f.picked && !f.delivered){
+                    if(bee_player.getGlobalBounds().intersects(f.sprite.getGlobalBounds())){
                         f.picked = true;
+                        f.carrier = Carrier::Player;
                         player.carryingFlower = true;
+                        break;
                     }
                 }
             }
         }
 
-        if(!bee.carryingFlower) {
-            for (auto& f : flowers) {
-                if (!f.picked && !f.delivered) {
-                    if (bee_ai.getGlobalBounds().intersects(f.sprite.getGlobalBounds())) {
+        if(!bee.carryingFlower){
+            for(auto &f: flowers){
+                if(!f.picked && !f.delivered){
+                    if(bee_ai.getGlobalBounds().intersects(f.sprite.getGlobalBounds())){
                         f.picked = true;
+                        f.carrier = Carrier::AI;
                         bee.carryingFlower = true;
+                        break;
                     }
                 }
             }
@@ -249,34 +245,44 @@ int main() {
 
         for (auto& f : flowers) {
             if (f.picked && !f.delivered) {
-                f.sprite.setPosition(player.position + Vector2f(20, 0));
+                if (f.carrier == Carrier::Player)
+                    f.sprite.setPosition(player.position + Vector2f(20, 0));
+                else if (f.carrier == Carrier::AI)
+                    f.sprite.setPosition(bee.position + Vector2f(20, 0));
             }
-        } // Gerer avec ai qui prend fleur / supprimer fleur liste quand player (ai regarde si fleur pickup)
+        }
 
         for (auto& f : flowers) {
             if (f.picked && !f.delivered) {
-                if (bee_player.getGlobalBounds().intersects(beehive_sprite.getGlobalBounds())) {
+                if (f.carrier == Carrier::Player && bee_player.getGlobalBounds().intersects(beehive_sprite.getGlobalBounds())) {
                     f.delivered = true;
                     f.picked = false;
+                    f.carrier = Carrier::None;
                     player.carryingFlower = false;
-                } else if (bee_ai.getGlobalBounds().intersects(beehive_sprite.getGlobalBounds())) {
+                } else if (f.carrier == Carrier::AI && bee_ai.getGlobalBounds().intersects(beehive_sprite.getGlobalBounds())) {
                     f.delivered = true;
                     f.picked = false;
+                    f.carrier = Carrier::None;
                     bee.carryingFlower = false;
-                    if (bee.bestIndex >= 0 && bee.bestIndex < static_cast<int>(flowerPositions.size())) {
-                        flowerPositions.erase(flowerPositions.begin() + bee.bestIndex);
-                        bee.bestIndex = -1;
-                    }
+                    bee.bestIndex = -1;
                 }
             }
         }
 
-        if (bee.bestIndex == -1) {
-            bee.findClosestPointIndex(flowerPositions);
-        } else if (bee.carryingFlower) {
-            bee.seek(false, selectedHive);
+
+        if (!bee.carryingFlower) {
+            if (bee.bestIndex != -1) {
+                if (flowers[bee.bestIndex].picked && flowers[bee.bestIndex].carrier == Carrier::Player) {
+                    bee.bestIndex = bee.findClosestPointIndex(flowers);
+                } else {
+                    bee.seek(false, flowers[bee.bestIndex].sprite.getPosition());
+                }
+            }
+            else {
+                bee.bestIndex = bee.findClosestPointIndex(flowers);
+            }
         } else {
-            bee.seek(false, flowerPositions[bee.bestIndex]);
+            bee.seek(false, selectedHive);
         }
 
         // Efface la fenetre avec un fond vert

@@ -7,6 +7,15 @@
 using namespace std;
 using namespace sf;
 
+enum class Carrier { None, Player, AI };
+
+struct Flower {
+    Sprite sprite;
+    bool picked = false;
+    bool delivered = false;
+    Carrier carrier = Carrier::None;
+};
+
 // Classe representant un vehicule avec des caracteristiques physiques et des comportements de mouvement
 class Vehicle {
 
@@ -174,16 +183,19 @@ public:
         }
     }
 
-    int findClosestPointIndex(const vector<Vector2f>& points) {
+    int findClosestPointIndex(const vector<Flower>& points) {
         bestIndex = -1;
         float bestDist = std::numeric_limits<float>::max();
         for (int i = 0; i < points.size(); i++) {
-            float dx = position.x - points[i].x;
-            float dy = position.y - points[i].y;
-            float d = dx * dx + dy * dy;
-            if (d < bestDist) {
-                bestDist = d;
-                bestIndex = i;
+            if (!points[i].picked && !points[i].delivered) {
+                Vector2f flowerPos = points[i].sprite.getPosition();
+                float dx = position.x - flowerPos.x;
+                float dy = position.y - flowerPos.y;
+                float d = dx * dx + dy * dy;
+                if (d < bestDist) {
+                    bestDist = d;
+                    bestIndex = i;
+                }
             }
         }
         return bestIndex;
