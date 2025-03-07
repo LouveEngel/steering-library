@@ -2,6 +2,8 @@
 #include <SFML/System.hpp>
 #include <SFML/Window.hpp>
 #include <cmath>
+#include <set>
+#include <queue>
 #include <vector>
 
 using namespace std;
@@ -199,5 +201,48 @@ public:
             }
         }
         return bestIndex;
+    }
+
+    int findClosestPathPointIndex(const Vector2f& pos, const vector<Vector2f>& path_points) {
+        int bestIndex = 0;
+        float bestDist = std::numeric_limits<float>::max();
+        for (size_t i = 0; i < path_points.size(); i++) {
+            float dx = pos.x - path_points[i].x;
+            float dy = pos.y - path_points[i].y;
+            float d = dx * dx + dy * dy;
+            if (d < bestDist) {
+                bestDist = d;
+                bestIndex = i;
+            }
+        }
+        return bestIndex;
+    }
+
+    vector<int> findShortestPath(int start, int goal, map<int, vector<int>>& graph) {
+        queue<vector<int>> paths;
+        set<int> visited;
+
+        paths.push({start});
+        visited.insert(start);
+
+        while (!paths.empty()) {
+            vector<int> path = paths.front();
+            paths.pop();
+
+            int current = path.back();
+            if (current == goal) {
+                return path;
+            }
+
+            for (int neighbor : graph[current]) {
+                if (visited.find(neighbor) == visited.end()) {
+                    visited.insert(neighbor);
+                    vector<int> newPath = path;
+                    newPath.push_back(neighbor);
+                    paths.push(newPath);
+                }
+            }
+        }
+        return {};
     }
 };

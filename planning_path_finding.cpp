@@ -8,6 +8,7 @@
 #include <cstdlib>    // Pour rand()
 #include <ctime>      // Pour time()
 
+#include "vehicle.h"
 #include "player.cpp"
 #include "vehicle.cpp" // Inclusion du fichier contenant la classe Vehicle
 
@@ -29,9 +30,48 @@ vector<Vector2f> path_points = {
     {40,750}, {340,750}, {740,750}
 };
 
+map<int, vector<int>> graph = {
+    {0, {1, 5}},
+    {1, {0, 2}},
+    {2, {1, 6}},
+    {3, {8}},
+
+    {4, {5}},
+    {5, {0, 4, 10}},
+    {6, {2, 7, 9}},
+    {7,  {6, 8}},
+    {8,  {3, 7, 11}},
+
+    {9,  {6}},
+
+    {10, {5, 12}},
+    {11, {8, 16}},
+
+    {12, {10, 13, 17}},
+    {13, {12, 14}},
+    {14, {13, 15, 18}},
+    {15, {14, 16}},
+    {16, {11, 15, 19}},
+
+    {17, {12, 21}},
+    {18, {14, 23}},
+    {19, {16, 25}},
+
+    {20, {21, 26}},
+    {21, {17, 20, 22}},
+    {22, {21, 23, 27}},
+    {23, {18, 22, 24}},
+    {24, {23, 25}},
+    {25, {19, 24, 28}},
+
+    {26, {20}},
+    {27, {22}},
+    {28, {25}}
+};
+
 // Definition des points ou peut se trouver la ruche
 vector<Vector2f> hive_points = {
-    /*{50,90},*/{590,90},{320,345}/*,{50,540},{640,740}*/
+    {590,90},{320,345}
 };
 
 // Cette fonction permet de charger une texture a partir d'un fichier
@@ -59,7 +99,7 @@ int main() {
     srand(static_cast<unsigned int>(time(nullptr)));
 
     // Creation d'un vehicule avec position, vitesse et autres parametres
-    Vehicle bee(10, {700, 700}, {1.0f, 1.0f}, 1.0f, 5.0f, -1, false);
+    Vehicle bee(10, {700, 700}, {1.0f, 1.0f}, 1.0f, 6.0f, -1, false);
 
     Player player({50,200},false,-1);
 
@@ -139,7 +179,7 @@ int main() {
     // Segment 11
     createRect(chemin, 80, 280, 450, 400);
 
-    float slowingDistance = 200.0f;
+    float slowingDistance = 150.0f;
 
     vector<Flower> flowers;
     for (size_t i = 0; i < path_points.size(); i++) {
@@ -153,6 +193,9 @@ int main() {
             flowers.push_back(f);
         }
     }
+
+    vector<int> optimalPath;
+    int pathStep = 0; 
 
     // Boucle principale du programme
     while (window.isOpen()) {
@@ -274,15 +317,67 @@ int main() {
             if (bee.bestIndex != -1) {
                 if (flowers[bee.bestIndex].picked && flowers[bee.bestIndex].carrier == Carrier::Player) {
                     bee.bestIndex = bee.findClosestPointIndex(flowers);
+
+                    Vector2f targetFlowerPos = flowers[bee.bestIndex].sprite.getPosition();
+                
+                    int startIndex = bee.findClosestPathPointIndex(bee.position, path_points);
+                    int goalIndex = bee.findClosestPathPointIndex(targetFlowerPos, path_points);
+                    
+                    optimalPath = bee.findShortestPath(startIndex, goalIndex, graph);
+
+                    pathStep = 0;
                 } else {
-                    bee.seek(false, flowers[bee.bestIndex].sprite.getPosition());
+                    //bee.seek(false, flowers[bee.bestIndex].sprite.getPosition());
+
+                    Vector2f nextPos = path_points[optimalPath[pathStep]];
+                    bee.arrival(nextPos, slowingDistance);
+
+                    float dx = bee.position.x - nextPos.x;
+                    float dy = bee.position.y - nextPos.y;
+                    float distanceSquared = dx * dx + dy * dy;
+                    if (distanceSquared < 100.0f) { 
+                        pathStep++;
+                    }
                 }
             }
             else {
                 bee.bestIndex = bee.findClosestPointIndex(flowers);
+
+                Vector2f targetFlowerPos = flowers[bee.bestIndex].sprite.getPosition();
+                
+                int startIndex = bee.findClosestPathPointIndex(bee.position, path_points);
+                int goalIndex = bee.findClosestPathPointIndex(targetFlowerPos, path_points);
+                
+                optimalPath = bee.findShortestPath(startIndex, goalIndex, graph);
+
+                pathStep = 0;
             }
         } else {
-            bee.seek(false, selectedHive);
+            //bee.seek(false, selectedHive);
+
+            int startIndex = bee.findClosestPathPointIndex(bee.position, path_points);
+            int goalIndex = bee.findClosestPathPointIndex(selectedHive, path_points);
+
+            if (optimalPath.empty() || optimalPath.back() != goalIndex) {
+                optimalPath = bee.findShortestPath(startIndex, goalIndex, graph);
+                pathStep = 0;
+            }
+
+            if (pathStep < optimalPath.size()) {
+                Vector2f nextPos = path_points[optimalPath[pathStep]];
+                bee.arrival(nextPos, slowingDistance);
+
+                float dx = bee.position.x - nextPos.x;
+                float dy = bee.position.y - nextPos.y;
+                float distanceSquared = dx * dx + dy * dy;
+                if (distanceSquared < 100.0f) { 
+                    pathStep++;
+                }
+            }
+
+            if (pathStep >= optimalPath.size()) {
+                bee.seek(false, selectedHive);
+            }
         }
 
         // Efface la fenetre avec un fond vert
