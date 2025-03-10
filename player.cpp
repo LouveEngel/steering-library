@@ -5,6 +5,9 @@
 using namespace sf;
 using namespace std;
 
+// Vitesse de déplacement du joueur
+const float PLAYER_MOVE_SPEED = 5.0f;
+
 class Player {
 
 public:
@@ -17,19 +20,19 @@ public:
         : position(pos), carryingFlower(carryingF), index(i) {}
 
     void up () {
-        position.y -= 5;
+        position.y -= PLAYER_MOVE_SPEED;
     }
 
     void down () {
-        position.y += 5;
+        position.y += PLAYER_MOVE_SPEED;
     }
 
     void right () {
-        position.x += 5;
+        position.x += PLAYER_MOVE_SPEED;
     }
 
     void left () {
-        position.x -= 5;
+        position.x -= PLAYER_MOVE_SPEED;
     }
 
 };

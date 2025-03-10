@@ -6,21 +6,13 @@
 #include <queue>
 #include <vector>
 
+#include "common_functions.cpp"
+
 using namespace std;
 using namespace sf;
 
-enum class Carrier { None, Player, AI };
-
-struct Flower {
-    Sprite sprite;
-    bool picked = false;
-    bool delivered = false;
-    Carrier carrier = Carrier::None;
-};
-
 // Classe representant un vehicule avec des caracteristiques physiques et des comportements de mouvement
 class Vehicle {
-
 
 public:
     float mass; // Masse du vehicule
@@ -28,13 +20,16 @@ public:
     Vector2f velocity; // Vitesse actuelle du vehicule
     float max_force; // Force maximale pouvant etre appliquee
     float max_speed; // Vitesse maximale du vehicule
-    int bestIndex;
-    bool carryingFlower;
+    int bestIndex = -1;
+    bool carryingFlower = false;
+
+    vector<int> optimalPath;
+    int pathStep = 0;
 
 
     // Constructeur initialisant les proprietes du vehicule
-    Vehicle(float m, Vector2f pos, Vector2f vel, float maxF, float maxS, int bestI, bool carryingF) 
-        : mass(m), position(pos), velocity(vel), max_force(maxF), max_speed(maxS), bestIndex(bestI), carryingFlower(carryingF) {}
+    Vehicle(float m, Vector2f pos, Vector2f vel, float maxF, float maxS) 
+        : mass(m), position(pos), velocity(vel), max_force(maxF), max_speed(maxS) {}
 
 
     // Cette fonction permet de connaitre la longueur d'un vecteur
@@ -244,5 +239,62 @@ public:
             }
         }
         return {};
+    }
+
+    // Méthode de mise à jour de la navigation de l'abeille IA
+    // - path_points : ensemble des points de chemin
+    // - graph : graphe représentant les connexions entre ces points
+    // - flowers : liste des fleurs
+    // - hivePos : position de la ruche
+    // - slowing_distance : distance de ralentissement pour l'arrivée
+    void updateAI(const vector<Vector2f>& path_points, const map<int, vector<int>>& graph,
+                  vector<Flower>& flowers, const Vector2f& hivePos, float slowing_distance) {
+        if (!carryingFlower) {
+            // Si aucune fleur n'est ciblée ou si la fleur ciblée a été prise par le joueur,
+            // on met à jour la cible et on recalcule le chemin.
+            if (bestIndex == -1 || (flowers[bestIndex].picked && flowers[bestIndex].carrier == Carrier::Player) || (flowers[bestIndex].picked && flowers[bestIndex].carrier == Carrier::AI)) {
+                bestIndex = findClosestPointIndex(flowers);
+                if (bestIndex == -1) return; // Aucune fleur disponible
+                Vector2f targetFlowerPos = flowers[bestIndex].sprite.getPosition();
+                int startIndex = findClosestPathPointIndex(position, path_points);
+                int goalIndex = findClosestPathPointIndex(targetFlowerPos, path_points);
+                optimalPath = findShortestPath(startIndex, goalIndex, const_cast<map<int, vector<int>>&>(graph));
+                pathStep = 0;
+            }
+            // Suivi du chemin optimal vers la fleur cible
+            if (!optimalPath.empty() && pathStep < optimalPath.size()) {
+                Vector2f nextPos = path_points[optimalPath[pathStep]];
+                arrival(nextPos, slowing_distance);
+                float dx = position.x - nextPos.x;
+                float dy = position.y - nextPos.y;
+                float distanceSquared = dx * dx + dy * dy;
+                if (distanceSquared < 100.0f) {
+                    pathStep++;
+                }
+            }
+        } else { 
+            // Si l'abeille transporte une fleur, elle doit retourner à la ruche.
+            int startIndex = findClosestPathPointIndex(position, path_points);
+            int goalIndex = findClosestPathPointIndex(hivePos, path_points);
+            // Recalcule le chemin si nécessaire
+            if (optimalPath.empty() || optimalPath.back() != goalIndex) {
+                optimalPath = findShortestPath(startIndex, goalIndex, const_cast<map<int, vector<int>>&>(graph));
+                pathStep = 0;
+            }
+            if (!optimalPath.empty() && pathStep < optimalPath.size()) {
+                Vector2f nextPos = path_points[optimalPath[pathStep]];
+                arrival(nextPos, slowing_distance);
+                float dx = position.x - nextPos.x;
+                float dy = position.y - nextPos.y;
+                float distanceSquared = dx * dx + dy * dy;
+                if (distanceSquared < 100.0f) {
+                    pathStep++;
+                }
+            }
+            if (pathStep >= optimalPath.size()) {
+                // Une fois le chemin terminé, on se dirige directement vers la ruche.
+                seek(false, hivePos);
+            }
+        }
     }
 };

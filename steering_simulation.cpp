@@ -7,6 +7,7 @@
 #include <map>
 
 #include "vehicle.cpp" // Inclusion du fichier contenant la classe Vehicle
+#include "common_functions.cpp"
 
 using namespace sf;
 using namespace std;
@@ -18,14 +19,6 @@ constexpr int HEIGHT = 800; // Hauteur de la fenetre
 vector<Vector2f> path_points = {
     {150, 200}, {400, 200}, {650, 200}, {650, 600}, {400, 600}, {150, 600}
 };
-
-// Cette fonction permet de charger une texture a partir d'un fichier
-void loadTexture(map<string, Texture>& textures, const string& name, const string& path) {
-    if (!textures[name].loadFromFile(path)) {
-        cerr << "Erreur : Impossible de charger " << path << endl;
-        exit(-1);
-    }
-}
 
 int main() {
     // Creation de la fenetre SFML

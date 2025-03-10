@@ -5,11 +5,11 @@
 #include <iostream>
 #include <vector>
 #include <map>
-#include <cstdlib>    // Pour rand()
-#include <ctime>      // Pour time()
+#include <cstdlib> // Pour rand()
+#include <ctime> // Pour time()
 
 #include "vehicle.h"
-#include "player.cpp"
+#include "player.cpp" // Inclusion du fichier contenant la classe Player
 #include "vehicle.cpp" // Inclusion du fichier contenant la classe Vehicle
 
 using namespace sf;
@@ -17,6 +17,16 @@ using namespace std;
 
 constexpr int WIDTH = 800; // Largeur de la fenetre
 constexpr int HEIGHT = 800; // Hauteur de la fenetre
+
+// Distance d'arrêt pour le arrival
+const float SLOWING_DISTANCE = 150.0f;
+
+// Facteurs d'échelle pour les sprites
+const float BEE_SCALE = 0.07f;
+const float FLOWER_SCALE = 0.007f;
+const float BEEHIVE_SCALE = 0.04f;
+
+const sf::Color PATH_COLOR(255, 221, 161);
 
 // Definition des points du chemin que le vehicule peut suivre
 vector<Vector2f> path_points = {
@@ -30,6 +40,7 @@ vector<Vector2f> path_points = {
     {40,750}, {340,750}, {740,750}
 };
 
+// Graphe représentant les connexions entre les points du chemin
 map<int, vector<int>> graph = {
     {0, {1, 5}},
     {1, {0, 2}},
@@ -70,25 +81,9 @@ map<int, vector<int>> graph = {
 };
 
 // Definition des points ou peut se trouver la ruche
-vector<Vector2f> hive_points = {
+vector<Vector2f> beehive_points = {
     {590,90},{320,345}
 };
-
-// Cette fonction permet de charger une texture a partir d'un fichier
-void loadTexture(map<string, Texture>& textures, const string& name, const string& path) {
-    if (!textures[name].loadFromFile(path)) {
-        cerr << "Erreur : Impossible de charger " << path << endl;
-        exit(-1);
-    }
-}
-
-void createRect(std::vector<RectangleShape>& chemin, int sizeX, int sizeY, int positionX, int positionY) {
-    RectangleShape rect;
-    rect.setSize(Vector2f(sizeX, sizeY));
-    rect.setFillColor(Color(255, 221, 161));
-    rect.setPosition(positionX, positionY);
-    chemin.push_back(rect);
-}
 
 int main() {
     // Creation de la fenetre SFML
@@ -99,8 +94,9 @@ int main() {
     srand(static_cast<unsigned int>(time(nullptr)));
 
     // Creation d'un vehicule avec position, vitesse et autres parametres
-    Vehicle bee(10, {700, 700}, {1.0f, 1.0f}, 1.0f, 6.0f, -1, false);
+    Vehicle bee(10, {700, 700}, {1.0f, 1.0f}, 1.0f, 6.0f);
 
+    // Creation du player
     Player player({50,200},false,-1);
 
     // Chargement des textures necessaires
@@ -112,74 +108,41 @@ int main() {
     // Creation et configuration des sprites pour l'affichage
     Sprite bee_player(textures["bee"]);
     bee_player.setOrigin(bee_player.getTexture()->getSize().x / 2, bee_player.getTexture()->getSize().y / 2);
-    bee_player.setScale(0.07f, 0.07f);
+    bee_player.setScale(BEE_SCALE, BEE_SCALE);
 
     Sprite bee_ai(textures["bee"]);
     bee_ai.setOrigin(bee_ai.getTexture()->getSize().x / 2, bee_ai.getTexture()->getSize().y / 2);
-    bee_ai.setScale(0.07f, 0.07f);
+    bee_ai.setScale(BEE_SCALE, BEE_SCALE);
 
     Sprite flower_sprite(textures["flower"]);
     flower_sprite.setOrigin(flower_sprite.getTexture()->getSize().x / 2, flower_sprite.getTexture()->getSize().y / 2);
-    flower_sprite.setScale(0.007f, 0.007f);
+    flower_sprite.setScale(FLOWER_SCALE, FLOWER_SCALE);
 
     sf::Sprite beehive_sprite(textures["beehive"]);
     beehive_sprite.setOrigin(beehive_sprite.getTexture()->getSize().x / 2, beehive_sprite.getTexture()->getSize().y / 2);
-    beehive_sprite.setScale(0.04f, 0.04f);
+    beehive_sprite.setScale(BEEHIVE_SCALE, BEEHIVE_SCALE);
 
-    sf::Color color(255, 221, 161);
+    int randomIndex = rand() % beehive_points.size();
+    Vector2f selectedBeehive = beehive_points[randomIndex];
+    beehive_sprite.setPosition(selectedBeehive);
 
     // Création du conteneur pour stocker les segments du chemin
-    std::vector<RectangleShape> chemin;
+    std::vector<RectangleShape> path;
 
-    RectangleShape rectRuche;
-    rectRuche.setSize(Vector2f(100, 190));
-    rectRuche.setFillColor(sf::Color::Red);
-    
-    int randomIndex = rand() % hive_points.size();
-    Vector2f selectedHive = hive_points[randomIndex];
-    beehive_sprite.setPosition(selectedHive);
+    createRect(path, sf::Color::Green, 100, 190, selectedBeehive.x - 50, selectedBeehive.y - 50);
 
-    rectRuche.setPosition(
-        selectedHive.x - 50,
-        selectedHive.y - 50
-    );
-
-    chemin.push_back(rectRuche);
-
-    // Segment 1
-    createRect(chemin, 80, 800, 700, 0);
-
-    // Segment 2
-    createRect(chemin, 800, 80, 0, 600);
-
-    // Segment 3
-    createRect(chemin, 80, 200, 0, 600);
-
-    // Segment 4
-    createRect(chemin, 80, 200, 300, 600);
-
-    // Segment 5
-    createRect(chemin, 80, 680, 100, 0);
-
-    // Segment 6
-    createRect(chemin, 180, 80, 0, 150);
-
-    // Segment 7
-    createRect(chemin, 380, 80, 100, 0);
-
-    // Segment 8
-    createRect(chemin, 80, 300, 400, 0);
-
-    // Segment 9
-    createRect(chemin, 380, 80, 400, 150);
-
-    // Segment 10
-    createRect(chemin, 680, 80, 100, 400);
-
-    // Segment 11
-    createRect(chemin, 80, 280, 450, 400);
-
-    float slowingDistance = 150.0f;
+    // Création des segments pour le chemin
+    createRect(path, PATH_COLOR, 80, 800, 700, 0);
+    createRect(path, PATH_COLOR, 800, 80, 0, 600);
+    createRect(path, PATH_COLOR, 80, 200, 0, 600);
+    createRect(path, PATH_COLOR, 80, 200, 300, 600);
+    createRect(path, PATH_COLOR, 80, 680, 100, 0);
+    createRect(path, PATH_COLOR, 180, 80, 0, 150);
+    createRect(path, PATH_COLOR, 380, 80, 100, 0);
+    createRect(path, PATH_COLOR, 80, 300, 400, 0);
+    createRect(path, PATH_COLOR, 380, 80, 400, 150);
+    createRect(path, PATH_COLOR, 680, 80, 100, 400);
+    createRect(path, PATH_COLOR, 80, 280, 450, 400);
 
     vector<Flower> flowers;
     for (size_t i = 0; i < path_points.size(); i++) {
@@ -192,10 +155,7 @@ int main() {
             f.sprite.setPosition(path_points[i]);
             flowers.push_back(f);
         }
-    }
-
-    vector<int> optimalPath;
-    int pathStep = 0; 
+    } 
 
     // Boucle principale du programme
     while (window.isOpen()) {
@@ -230,19 +190,19 @@ int main() {
                 bee_player.setPosition(player.position);
 
                 FloatRect beeBounds = bee_player.getGlobalBounds();
-                FloatRect segRuche = rectRuche.getGlobalBounds();
+                FloatRect segRuche = path[0].getGlobalBounds();
                 bool estSurChemin = false;
 
-                if ( segRuche.contains(beeBounds.left, beeBounds.top) &&
+                if (segRuche.contains(beeBounds.left, beeBounds.top) &&
                     segRuche.contains(beeBounds.left + beeBounds.width, beeBounds.top) &&
                     segRuche.contains(beeBounds.left, beeBounds.top + beeBounds.height) &&
                     segRuche.contains(beeBounds.left + beeBounds.width, beeBounds.top + beeBounds.height) ) {
                     estSurChemin = true;
                 }
                 else {
-                    for (const auto& segment : chemin) {
+                    for (const auto& segment : path) {
                         FloatRect segBounds = segment.getGlobalBounds();
-                        if ( segBounds.contains(beeBounds.left, beeBounds.top) &&
+                        if (segBounds.contains(beeBounds.left, beeBounds.top) &&
                             segBounds.contains(beeBounds.left + beeBounds.width, beeBounds.top) &&
                             segBounds.contains(beeBounds.left, beeBounds.top + beeBounds.height) &&
                             segBounds.contains(beeBounds.left + beeBounds.width, beeBounds.top + beeBounds.height) ) {
@@ -312,79 +272,20 @@ int main() {
             }
         }
 
-
-        if (!bee.carryingFlower) {
-            if (bee.bestIndex != -1) {
-                if (flowers[bee.bestIndex].picked && flowers[bee.bestIndex].carrier == Carrier::Player) {
-                    bee.bestIndex = bee.findClosestPointIndex(flowers);
-
-                    Vector2f targetFlowerPos = flowers[bee.bestIndex].sprite.getPosition();
-                
-                    int startIndex = bee.findClosestPathPointIndex(bee.position, path_points);
-                    int goalIndex = bee.findClosestPathPointIndex(targetFlowerPos, path_points);
-                    
-                    optimalPath = bee.findShortestPath(startIndex, goalIndex, graph);
-
-                    pathStep = 0;
-                } else {
-                    //bee.seek(false, flowers[bee.bestIndex].sprite.getPosition());
-
-                    Vector2f nextPos = path_points[optimalPath[pathStep]];
-                    bee.arrival(nextPos, slowingDistance);
-
-                    float dx = bee.position.x - nextPos.x;
-                    float dy = bee.position.y - nextPos.y;
-                    float distanceSquared = dx * dx + dy * dy;
-                    if (distanceSquared < 100.0f) { 
-                        pathStep++;
-                    }
-                }
-            }
-            else {
-                bee.bestIndex = bee.findClosestPointIndex(flowers);
-
-                Vector2f targetFlowerPos = flowers[bee.bestIndex].sprite.getPosition();
-                
-                int startIndex = bee.findClosestPathPointIndex(bee.position, path_points);
-                int goalIndex = bee.findClosestPathPointIndex(targetFlowerPos, path_points);
-                
-                optimalPath = bee.findShortestPath(startIndex, goalIndex, graph);
-
-                pathStep = 0;
-            }
-        } else {
-            //bee.seek(false, selectedHive);
-
-            int startIndex = bee.findClosestPathPointIndex(bee.position, path_points);
-            int goalIndex = bee.findClosestPathPointIndex(selectedHive, path_points);
-
-            if (optimalPath.empty() || optimalPath.back() != goalIndex) {
-                optimalPath = bee.findShortestPath(startIndex, goalIndex, graph);
-                pathStep = 0;
-            }
-
-            if (pathStep < optimalPath.size()) {
-                Vector2f nextPos = path_points[optimalPath[pathStep]];
-                bee.arrival(nextPos, slowingDistance);
-
-                float dx = bee.position.x - nextPos.x;
-                float dy = bee.position.y - nextPos.y;
-                float distanceSquared = dx * dx + dy * dy;
-                if (distanceSquared < 100.0f) { 
-                    pathStep++;
-                }
-            }
-
-            if (pathStep >= optimalPath.size()) {
-                bee.seek(false, selectedHive);
-            }
+        // Mise à jour de la navigation de l'abeille IA via la méthode updateAI
+        if (bee_ai.getGlobalBounds().intersects(bee_player.getGlobalBounds())) {
+            bee.velocity = {0, 0};
+            bee.position.x = bee.position.x + 20;
+        }
+        else {
+        bee.updateAI(path_points, graph, flowers, selectedBeehive, SLOWING_DISTANCE);
         }
 
         // Efface la fenetre avec un fond vert
         window.clear(Color::Green);
         
         // Dessine tous les segments du chemin
-        for (const auto& segment : chemin) {
+        for (const auto& segment : path) {
             window.draw(segment);
         }
 
@@ -398,7 +299,13 @@ int main() {
         bee_player.setPosition(player.position);
         window.draw(bee_player);
 
+        // Mise a jour de la position et de la rotation de l'abeille (vehicule)
         bee_ai.setPosition(bee.position);
+        if (bee.length(bee.velocity) > 0.1f) {
+            float angle = atan2(bee.velocity.y, bee.velocity.x) * 180 / M_PI;
+            bee_ai.setRotation(angle);
+        }
+
         window.draw(bee_ai);
 
         window.display();
@@ -406,3 +313,5 @@ int main() {
 
     return 0;
 }
+
+// si plus de fleur, retourne à ruche et colision
