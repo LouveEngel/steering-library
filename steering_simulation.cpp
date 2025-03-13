@@ -19,6 +19,16 @@ vector<Vector2f> path_points = {
     {150, 200}, {400, 200}, {650, 200}, {650, 600}, {400, 600}, {150, 600}
 };
 
+// Fonction qui charge une texture depuis un fichier et l'associe a un nom dans une map
+void loadTexture(map<string, Texture>& textures, const string& name, const string& path) {
+    // Tente de charger la texture a partir du chemin specifie
+    if (!textures[name].loadFromFile(path)) {
+        // En cas d'echec, affiche un message d'erreur et termine le programme
+        cerr << "Erreur : Impossible de charger " << path << endl;
+        exit(-1);
+    }
+}
+
 int main() {
     // Creation de la fenetre SFML
     RenderWindow window(VideoMode(WIDTH, HEIGHT), "Steering Simulation");
