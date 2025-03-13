@@ -7,7 +7,6 @@
 #include <map>
 
 #include "vehicle.cpp" // Inclusion du fichier contenant la classe Vehicle
-#include "common_functions.cpp"
 
 using namespace sf;
 using namespace std;
